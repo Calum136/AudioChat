@@ -1,0 +1,19 @@
+{
+  "name": "audiochat",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AudioChat backend bootstrap with realtime chat and voice presence signaling",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "ws": "^8.18.0"
+  }
+}
