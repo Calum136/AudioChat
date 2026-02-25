@@ -2,12 +2,15 @@
 
 AudioChat is a Discord-like social app focused on voice-first hangouts for friend groups.
 
-This backend now includes a practical vertical slice with:
+This backend includes:
 - users, servers, channels, and memberships
 - role-based permissions (`owner`, `admin`, `member`)
-- token-based auth for API access
-- realtime text message fan-out
+- token-based auth for API and WebSocket access
+- realtime text message fan-out with channel-scoped delivery
 - voice join/leave events with `soundCue` metadata
+- typing indicators with auto-timeout
+- user presence heartbeats (online/idle/offline)
+- moderation: voice mute/kick, server ban/unban
 - 30-day retention cleanup for chat history
 
 ## Quick Start
@@ -36,32 +39,87 @@ curl -s -X POST http://localhost:3000/api/auth/dev-login \
 
 Use returned token as `Authorization: Bearer <token>`.
 
-## HTTP API (Bootstrap)
+## HTTP API
 
 ### Public
 - `GET /health`
-- `POST /api/users`
-- `POST /api/auth/dev-login`
+- `POST /api/users` — create user
+- `POST /api/auth/dev-login` — get auth token
 
-### Authenticated
-- `POST /api/servers`
-- `POST /api/members`
-- `POST /api/channels`
-- `POST /api/messages`
-- `GET /api/messages?serverId=s1&channelId=c-text-1`
+### Servers (Authenticated)
+- `GET /api/servers` — list user's servers
+- `GET /api/servers/:id` — get server details
+- `POST /api/servers` — create server
+
+### Channels (Authenticated)
+- `GET /api/channels?serverId=` — list channels in a server
+- `POST /api/channels` — create channel
+- `DELETE /api/channels/:id` — delete channel (owner/admin)
+
+### Members (Authenticated)
+- `GET /api/members?serverId=` — list members with roles
+- `POST /api/members` — add member to server
+- `PUT /api/members` — change member role (promote/demote)
+- `DELETE /api/members` — kick member from server
+
+### Messages (Authenticated)
+- `GET /api/messages?serverId=&channelId=&limit=&before=` — paginated messages
+- `POST /api/messages` — send message
+- `PUT /api/messages/:id` — edit message (author only)
+- `DELETE /api/messages/:id` — delete message (author or message.delete perm)
+
+### Voice (Authenticated)
+- `GET /api/voice-presence?serverId=&channelId=` — who's in voice
+
+### Moderation (Authenticated)
+- `POST /api/moderation/voice-mute` — mute user in voice channel
+- `POST /api/moderation/voice-unmute` — unmute user
+- `POST /api/moderation/voice-kick` — kick user from voice channel
+- `POST /api/moderation/ban` — ban user from server
+- `POST /api/moderation/unban` — unban user
 
 ## Realtime WebSocket
 
-Connect to: `ws://localhost:3000/realtime`
+Connect to: `ws://localhost:3000/realtime?token=<token>`
 
-Inbound events:
-- `voice.join` with `{ "serverId":"s1", "channelId":"c-voice-1", "userId":"u2" }`
-- `voice.leave` with `{ "serverId":"s1", "channelId":"c-voice-1", "userId":"u2" }`
+WebSocket connections require a valid auth token passed as a query parameter. Unauthenticated connections are rejected with 401.
 
-Outbound events:
-- `voice.joined` + `soundCue: "join"`
-- `voice.left` + `soundCue: "leave"`
-- `message.created`
+### Inbound Events (client → server)
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `channel.subscribe` | `{ channelId }` | Subscribe to channel events |
+| `channel.unsubscribe` | `{ channelId }` | Unsubscribe from channel |
+| `voice.join` | `{ serverId, channelId }` | Join voice channel |
+| `voice.leave` | `{ serverId, channelId }` | Leave voice channel |
+| `typing.start` | `{ channelId }` | Start typing indicator |
+| `typing.stop` | `{ channelId }` | Stop typing indicator |
+| `heartbeat` | `{}` | Presence heartbeat |
+
+### Outbound Events (server → client)
+
+| Event | Delivery | Description |
+|-------|----------|-------------|
+| `realtime.connected` | sender | Connection confirmed |
+| `channel.subscribed` | sender | Subscription confirmed |
+| `voice.joined` | server members | User joined voice |
+| `voice.left` | server members | User left voice |
+| `voice.muted` | server members | User muted in voice |
+| `voice.unmuted` | server members | User unmuted |
+| `voice.kicked` | server members | User kicked from voice |
+| `message.created` | channel subscribers | New message |
+| `message.updated` | channel subscribers | Message edited |
+| `message.deleted` | channel subscribers | Message deleted |
+| `typing.start` | channel subscribers (excl. sender) | User started typing |
+| `typing.stop` | channel subscribers (excl. sender) | User stopped typing |
+| `presence.update` | server members | User online/idle/offline |
+| `member.updated` | server members | Role changed |
+| `member.removed` | server members | Member kicked |
+| `member.banned` | server members | Member banned |
+
+### Scoped Delivery
+
+Events are scoped — clients only receive events for servers they belong to and channels they've subscribed to. No cross-server or cross-channel leakage.
 
 ## Retention Behavior
 
@@ -75,16 +133,14 @@ Messages older than 30 days are removed by a scheduled sweep.
 npm test
 ```
 
-Tests currently cover:
-- token issue/verify and expiry behavior
-- permission boundaries (member vs owner actions)
-- 30-day retention cleanup logic
-- voice join/leave cue payloads
+Tests cover (87 total):
+- Token issue/verify, expiry, edge cases (9 tests)
+- Store CRUD, permissions, pagination, moderation (34 tests)
+- REST API integration: all endpoints, auth, error cases (27 tests)
+- WebSocket: auth, scoped delivery, typing, voice, disconnect cleanup (13 tests)
 
 ## Next Major Steps
 
 1. Persist entities to PostgreSQL and cache presence in Redis.
-2. Validate websocket users via auth token and scoped channel subscriptions.
-3. Integrate SFU media service (e.g. LiveKit/mediasoup) for real voice transport.
-4. Add moderation actions, typing indicators, and presence heartbeats.
-5. Add streaming sessions and adaptive quality controls toward 1080p60.
+2. Integrate SFU media service (e.g. LiveKit/mediasoup) for real voice transport.
+3. Add streaming sessions and adaptive quality controls toward 1080p60.
