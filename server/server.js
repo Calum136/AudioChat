@@ -1,5 +1,7 @@
+const path = require('path');
 const express = require('express');
 const http = require('http');
+const { AccessToken } = require('livekit-server-sdk');
 const { InMemoryStore } = require('./store');
 const { createRealtimeServer } = require('./realtime');
 const { issueToken, verifyToken } = require('./auth');
@@ -7,6 +9,8 @@ const { issueToken, verifyToken } = require('./auth');
 const PORT = Number(process.env.PORT || 3000);
 const RETENTION_SWEEP_MS = Number(process.env.RETENTION_SWEEP_MS || 60 * 60 * 1000);
 const AUTH_SECRET = process.env.AUTH_SECRET || 'dev-secret-change-me';
+const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY;
+const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET;
 
 function createAuthMiddleware(secret) {
   return (req, res, next) => {
@@ -26,9 +30,28 @@ function createApp({ store, realtime, authSecret = AUTH_SECRET }) {
   const authMiddleware = createAuthMiddleware(authSecret);
   const app = express();
   app.use(express.json());
+  app.use(express.static(path.join(__dirname, '..', 'public')));
 
   app.get('/health', (_req, res) => {
     res.json({ ok: true, service: 'audiochat-backend' });
+  });
+
+  // LiveKit token generation — no auth for MVP
+  app.post('/api/livekit-token', async (req, res) => {
+    const { roomName, identity } = req.body;
+    if (!roomName || !identity) {
+      return res.status(400).json({ error: 'roomName and identity are required' });
+    }
+    if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
+      return res.status(500).json({ error: 'LiveKit credentials not configured' });
+    }
+    const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
+      identity,
+      ttl: '6h',
+    });
+    at.addGrant({ roomJoin: true, room: roomName, canPublish: true, canSubscribe: true });
+    const token = await at.toJwt();
+    res.json({ token });
   });
 
   app.post('/api/auth/dev-login', (req, res) => {

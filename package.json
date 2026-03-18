@@ -1,19 +1,26 @@
 {
-  "name": "audiochat",
-  "version": "0.1.0",
+  "name": "sidequest",
   "private": true,
-  "description": "AudioChat backend bootstrap with realtime chat and voice presence signaling",
-  "main": "src/server.js",
-  "type": "commonjs",
+  "version": "0.1.0",
+  "type": "module",
   "scripts": {
-    "start": "node src/server.js",
-    "test": "node --test"
-  },
-  "engines": {
-    "node": ">=18"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "express": "^4.21.2",
-    "ws": "^8.18.0"
+    "@supabase/supabase-js": "^2.99.2",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "livekit-client": "^2.17.3",
+    "livekit-server-sdk": "^2.15.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "ws": "^8.19.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.0",
+    "vite": "^6.0.0"
   }
 }

@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AudioChat</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-darkest: #1e1f22;
+    --bg-dark: #2b2d31;
+    --bg-medium: #313338;
+    --bg-light: #383a40;
+    --bg-hover: #404249;
+    --bg-active: #404249;
+    --text-primary: #f2f3f5;
+    --text-secondary: #b5bac1;
+    --text-muted: #6d6f78;
+    --accent: #5865f2;
+    --accent-hover: #4752c4;
+    --green: #23a559;
+    --yellow: #f0b232;
+    --red: #ed4245;
+    --divider: #3f4147;
+  }
+
+  body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg-medium);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* --- Login Screen --- */
+  #login-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: var(--bg-darkest);
+  }
+
+  .login-box {
+    background: var(--bg-dark);
+    border-radius: 8px;
+    padding: 32px;
+    width: 400px;
+    text-align: center;
+  }
+
+  .login-box h1 {
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+
+  .login-box p {
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    font-size: 14px;
+  }
+
+  .login-box button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 8px;
+    border: none;
+    border-radius: 4px;
+    background: var(--accent);
+    color: white;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .login-box button:hover { background: var(--accent-hover); }
+
+  .login-box button.secondary {
+    background: var(--bg-light);
+  }
+
+  .login-box button.secondary:hover { background: var(--bg-hover); }
+
+  /* --- App Layout --- */
+  #app {
+    display: none;
+    height: 100vh;
+  }
+
+  #app.active { display: flex; }
+  #login-screen.hidden { display: none; }
+
+  /* Server list */
+  .server-list {
+    width: 72px;
+    background: var(--bg-darkest);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 12px;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .server-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--bg-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-radius 0.2s, background 0.2s;
+    color: var(--text-primary);
+  }
+
+  .server-icon:hover, .server-icon.active {
+    border-radius: 16px;
+    background: var(--accent);
+  }
+
+  .server-divider {
+    width: 32px;
+    height: 2px;
+    background: var(--divider);
+    border-radius: 1px;
+  }
+
+  /* Channel sidebar */
+  .channel-sidebar {
+    width: 240px;
+    background: var(--bg-dark);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .server-header {
+    padding: 12px 16px;
+    font-weight: 600;
+    font-size: 15px;
+    border-bottom: 1px solid var(--bg-darkest);
+    height: 48px;
+    display: flex;
+    align-items: center;
+  }
+
+  .channel-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+
+  .channel-category {
+    padding: 16px 16px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  .channel-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px 6px 16px;
+    margin: 1px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 15px;
+    gap: 6px;
+  }
+
+  .channel-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .channel-item.active { background: var(--bg-active); color: var(--text-primary); }
+
+  .channel-icon {
+    font-size: 18px;
+    opacity: 0.7;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .voice-users {
+    padding: 0 0 4px 42px;
+    font-size: 13px;
+  }
+
+  .voice-user {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+    color: var(--text-secondary);
+  }
+
+  .voice-user-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    flex-shrink: 0;
+  }
+
+  /* User bar at bottom of channel sidebar */
+  .user-bar {
+    padding: 8px;
+    background: var(--bg-darkest);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-top: 1px solid var(--bg-darkest);
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .user-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .user-name {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .user-status {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* Chat area */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .chat-header {
+    height: 48px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--bg-darkest);
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .chat-header .channel-icon { opacity: 0.5; }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .message {
+    display: flex;
+    gap: 12px;
+    padding: 4px 0;
+    border-radius: 4px;
+  }
+
+  .message:hover { background: var(--bg-light); }
+
+  .msg-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 15px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .msg-avatar.color-1 { background: #5865f2; }
+  .msg-avatar.color-2 { background: #57f287; color: #1e1f22; }
+  .msg-avatar.color-3 { background: #fee75c; color: #1e1f22; }
+  .msg-avatar.color-4 { background: #eb459e; }
+  .msg-avatar.color-5 { background: #ed4245; }
+
+  .msg-body { flex: 1; min-width: 0; }
+
+  .msg-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .msg-author {
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  .msg-time {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .msg-edited {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .msg-content {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  .typing-indicator {
+    padding: 0 16px 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+    min-height: 20px;
+  }
+
+  .chat-input-wrapper {
+    padding: 0 16px 24px;
+    flex-shrink: 0;
+  }
+
+  .chat-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--bg-light);
+    border: none;
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    resize: none;
+  }
+
+  .chat-input::placeholder { color: var(--text-muted); }
+
+  /* Member list */
+  .member-list {
+    width: 240px;
+    background: var(--bg-dark);
+    overflow-y: auto;
+    padding: 12px 8px;
+    flex-shrink: 0;
+  }
+
+  .member-category {
+    padding: 8px 8px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  .member-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: default;
+  }
+
+  .member-item:hover { background: var(--bg-hover); }
+
+  .member-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .member-presence {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-dark);
+  }
+
+  .member-presence.online { background: var(--green); }
+  .member-presence.idle { background: var(--yellow); }
+  .member-presence.offline { background: var(--text-muted); }
+
+  .member-name {
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  .member-name .role-tag {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-left: 4px;
+  }
+
+  /* Voice connected banner */
+  .voice-banner {
+    display: none;
+    padding: 8px 16px;
+    background: #1a1e23;
+    border-top: 1px solid var(--divider);
+    font-size: 13px;
+  }
+
+  .voice-banner.active { display: flex; align-items: center; justify-content: space-between; }
+
+  .voice-banner .voice-status {
+    color: var(--green);
+    font-weight: 600;
+    font-size: 12px;
+  }
+
+  .voice-banner .voice-channel-name {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .voice-banner button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+
+  .voice-banner button:hover { background: var(--bg-hover); color: var(--red); }
+
+  /* Welcome / empty state */
+  .welcome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    gap: 8px;
+  }
+
+  .welcome h2 { color: var(--text-primary); font-size: 24px; }
+  .welcome p { font-size: 14px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg-darkest); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #1a1b1e; }
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>AudioChat</h1>
+    <p>Select a user to log in</p>
+    <button onclick="login('u1')">Login as Alice (Owner)</button>
+    <button class="secondary" onclick="login('u2')">Login as Bob (Member)</button>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <!-- Server list -->
+  <div class="server-list" id="server-list"></div>
+
+  <!-- Channel sidebar -->
+  <div class="channel-sidebar">
+    <div class="server-header" id="server-header">Server</div>
+    <div class="channel-list" id="channel-list"></div>
+    <div class="voice-banner" id="voice-banner">
+      <div>
+        <div class="voice-status">Voice Connected</div>
+        <div class="voice-channel-name" id="voice-channel-name"></div>
+      </div>
+      <button onclick="leaveVoice()" title="Disconnect">&#x260E;</button>
+    </div>
+    <div class="user-bar">
+      <div class="user-avatar" id="user-avatar"></div>
+      <div class="user-info">
+        <div class="user-name" id="user-name-display"></div>
+        <div class="user-status">Online</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat area -->
+  <div class="chat-area" id="chat-area">
+    <div class="welcome" id="welcome-screen">
+      <h2>Welcome to AudioChat</h2>
+      <p>Select a text channel to start chatting</p>
+    </div>
+  </div>
+
+  <!-- Member list -->
+  <div class="member-list" id="member-list"></div>
+</div>
+
+<script>
+// --- State ---
+let token = null;
+let currentUserId = null;
+let currentUserName = null;
+let currentServerId = null;
+let currentChannelId = null;
+let ws = null;
+let voiceChannelId = null;
+let typingUsers = new Map(); // channelId -> Map<userId, timeout>
+let typingTimeout = null;
+let members = [];
+let channels = [];
+
+const userColors = {};
+let colorIndex = 0;
+function getUserColor(userId) {
+  if (!userColors[userId]) {
+    colorIndex = (colorIndex % 5) + 1;
+    userColors[userId] = colorIndex;
+  }
+  return userColors[userId];
+}
+
+function getUserName(userId) {
+  const m = members.find(m => m.userId === userId);
+  return m ? m.name : userId;
+}
+
+// --- API helpers ---
+async function api(path, opts = {}) {
+  const headers = { ...opts.headers };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (opts.body && typeof opts.body === 'object') {
+    headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(opts.body);
+  }
+  const res = await fetch(path, { ...opts, headers });
+  return res.json();
+}
+
+// --- Login ---
+async function login(userId) {
+  const data = await api('/api/auth/dev-login', {
+    method: 'POST',
+    body: { userId },
+  });
+  token = data.token;
+  currentUserId = data.userId;
+
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+
+  // Load servers
+  const serversData = await api('/api/servers');
+  renderServerList(serversData.items);
+
+  // Connect WebSocket
+  connectWebSocket();
+
+  if (serversData.items.length > 0) {
+    selectServer(serversData.items[0].id);
+  }
+}
+
+// --- WebSocket ---
+function connectWebSocket() {
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${protocol}//${location.host}/realtime?token=${token}`);
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    handleWsEvent(msg);
+  };
+
+  ws.onclose = () => {
+    setTimeout(connectWebSocket, 3000);
+  };
+}
+
+function wsSend(data) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(data));
+  }
+}
+
+function handleWsEvent(msg) {
+  switch (msg.event) {
+    case 'realtime.connected':
+      currentUserName = getUserName(msg.userId) || msg.userId;
+      document.getElementById('user-name-display').textContent = currentUserName;
+      document.getElementById('user-avatar').textContent = (currentUserName || '?')[0].toUpperCase();
+      break;
+
+    case 'channel.subscribed':
+      break;
+
+    case 'message.created':
+      if (msg.data && msg.data.channelId === currentChannelId) {
+        appendMessage(msg.data);
+        scrollToBottom();
+      }
+      break;
+
+    case 'message.updated':
+      if (msg.data) {
+        const el = document.querySelector(`[data-msg-id="${msg.data.id}"] .msg-content`);
+        if (el) {
+          el.textContent = msg.data.content;
+          const header = el.closest('.msg-body').querySelector('.msg-header');
+          if (!header.querySelector('.msg-edited')) {
+            const edited = document.createElement('span');
+            edited.className = 'msg-edited';
+            edited.textContent = '(edited)';
+            header.appendChild(edited);
+          }
+        }
+      }
+      break;
+
+    case 'message.deleted':
+      if (msg.data) {
+        const el = document.querySelector(`[data-msg-id="${msg.data.id}"]`);
+        if (el) el.remove();
+      }
+      break;
+
+    case 'voice.joined':
+      refreshVoicePresence();
+      break;
+
+    case 'voice.left':
+    case 'voice.kicked':
+      if (msg.userId === currentUserId) {
+        voiceChannelId = null;
+        document.getElementById('voice-banner').classList.remove('active');
+      }
+      refreshVoicePresence();
+      break;
+
+    case 'typing.start':
+      showTyping(msg.userId, msg.channelId);
+      break;
+
+    case 'typing.stop':
+      hideTyping(msg.userId, msg.channelId);
+      break;
+
+    case 'presence.update':
+      updateMemberPresence(msg.userId, msg.status);
+      break;
+
+    case 'member.updated':
+    case 'member.removed':
+    case 'member.banned':
+      if (currentServerId) loadMembers(currentServerId);
+      break;
+  }
+}
+
+// --- Server list ---
+function renderServerList(servers) {
+  const el = document.getElementById('server-list');
+  el.innerHTML = '';
+  servers.forEach(s => {
+    const icon = document.createElement('div');
+    icon.className = 'server-icon' + (s.id === currentServerId ? ' active' : '');
+    icon.textContent = s.name[0].toUpperCase();
+    icon.title = s.name;
+    icon.onclick = () => selectServer(s.id);
+    el.appendChild(icon);
+  });
+}
+
+async function selectServer(serverId) {
+  currentServerId = serverId;
+  currentChannelId = null;
+
+  // Update server icons
+  document.querySelectorAll('.server-icon').forEach(el => el.classList.remove('active'));
+  const icons = document.querySelectorAll('.server-icon');
+  // reload from api
+  const serverData = await api(`/api/servers/${serverId}`);
+  document.getElementById('server-header').textContent = serverData.name;
+
+  // Mark active icon
+  document.querySelectorAll('.server-icon').forEach(icon => {
+    if (icon.title === serverData.name) icon.classList.add('active');
+  });
+
+  // Load channels and members in parallel
+  const [chData, memData] = await Promise.all([
+    api(`/api/channels?serverId=${serverId}`),
+    api(`/api/members?serverId=${serverId}`),
+  ]);
+
+  channels = chData.items;
+  members = memData.items;
+
+  // Now we know the user name
+  currentUserName = getUserName(currentUserId) || currentUserId;
+  document.getElementById('user-name-display').textContent = currentUserName;
+  document.getElementById('user-avatar').textContent = currentUserName[0].toUpperCase();
+
+  renderChannels(channels);
+  renderMembers(members);
+
+  // Show welcome
+  showWelcome();
+
+  // Refresh voice presence
+  refreshVoicePresence();
+}
+
+// --- Channels ---
+function renderChannels(channelList) {
+  const el = document.getElementById('channel-list');
+  el.innerHTML = '';
+
+  const textChannels = channelList.filter(c => c.type === 'text');
+  const voiceChannels = channelList.filter(c => c.type === 'voice');
+
+  if (textChannels.length > 0) {
+    const cat = document.createElement('div');
+    cat.className = 'channel-category';
+    cat.textContent = 'Text Channels';
+    el.appendChild(cat);
+
+    textChannels.forEach(c => {
+      const item = document.createElement('div');
+      item.className = 'channel-item' + (c.id === currentChannelId ? ' active' : '');
+      item.innerHTML = `<span class="channel-icon">#</span>${c.name}`;
+      item.onclick = () => selectTextChannel(c.id, c.name);
+      el.appendChild(item);
+    });
+  }
+
+  if (voiceChannels.length > 0) {
+    const cat = document.createElement('div');
+    cat.className = 'channel-category';
+    cat.textContent = 'Voice Channels';
+    el.appendChild(cat);
+
+    voiceChannels.forEach(c => {
+      const item = document.createElement('div');
+      item.className = 'channel-item' + (c.id === voiceChannelId ? ' active' : '');
+      item.dataset.voiceChannelId = c.id;
+      item.innerHTML = `<span class="channel-icon">&#x1F50A;</span>${c.name}`;
+      item.onclick = () => joinVoice(c.id, c.name);
+      el.appendChild(item);
+
+      // Voice user list placeholder
+      const users = document.createElement('div');
+      users.className = 'voice-users';
+      users.id = `voice-users-${c.id}`;
+      el.appendChild(users);
+    });
+  }
+}
+
+async function selectTextChannel(channelId, channelName) {
+  // Unsubscribe from old channel
+  if (currentChannelId) {
+    wsSend({ event: 'channel.unsubscribe', channelId: currentChannelId });
+  }
+
+  currentChannelId = channelId;
+
+  // Update active state
+  document.querySelectorAll('.channel-item').forEach(el => {
+    el.classList.toggle('active',
+      el.textContent.trim() === channelName && el.querySelector('.channel-icon').textContent === '#'
+    );
+  });
+
+  // Subscribe to channel
+  wsSend({ event: 'channel.subscribe', channelId });
+
+  // Show chat UI
+  const chatArea = document.getElementById('chat-area');
+  chatArea.innerHTML = `
+    <div class="chat-header">
+      <span class="channel-icon">#</span>
+      ${channelName}
+    </div>
+    <div class="messages" id="messages"></div>
+    <div class="typing-indicator" id="typing-indicator"></div>
+    <div class="chat-input-wrapper">
+      <input class="chat-input" id="chat-input"
+        placeholder="Message #${channelName}"
+        onkeydown="handleInputKeydown(event)" oninput="handleInputTyping()">
+    </div>
+  `;
+
+  // Load messages
+  const data = await api(`/api/messages?serverId=${currentServerId}&channelId=${channelId}&limit=50`);
+  const messagesEl = document.getElementById('messages');
+  data.items.forEach(m => appendMessage(m));
+  scrollToBottom();
+
+  document.getElementById('chat-input').focus();
+}
+
+function showWelcome() {
+  const chatArea = document.getElementById('chat-area');
+  chatArea.innerHTML = `
+    <div class="welcome" id="welcome-screen">
+      <h2>Welcome to AudioChat</h2>
+      <p>Select a text channel to start chatting</p>
+    </div>
+  `;
+}
+
+// --- Messages ---
+function appendMessage(msg) {
+  const messagesEl = document.getElementById('messages');
+  if (!messagesEl) return;
+
+  const div = document.createElement('div');
+  div.className = 'message';
+  div.dataset.msgId = msg.id;
+
+  const name = getUserName(msg.userId);
+  const color = getUserColor(msg.userId);
+  const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const edited = msg.editedAt ? ' <span class="msg-edited">(edited)</span>' : '';
+
+  div.innerHTML = `
+    <div class="msg-avatar color-${color}">${(name || '?')[0].toUpperCase()}</div>
+    <div class="msg-body">
+      <div class="msg-header">
+        <span class="msg-author">${name}</span>
+        <span class="msg-time">${time}</span>
+        ${edited}
+      </div>
+      <div class="msg-content">${escapeHtml(msg.content)}</div>
+    </div>
+  `;
+
+  messagesEl.appendChild(div);
+}
+
+function scrollToBottom() {
+  const messagesEl = document.getElementById('messages');
+  if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// --- Input ---
+async function handleInputKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    const input = document.getElementById('chat-input');
+    const content = input.value.trim();
+    if (!content) return;
+    input.value = '';
+
+    // Stop typing
+    wsSend({ event: 'typing.stop', channelId: currentChannelId });
+
+    await api('/api/messages', {
+      method: 'POST',
+      body: { serverId: currentServerId, channelId: currentChannelId, content },
+    });
+  }
+}
+
+function handleInputTyping() {
+  if (!currentChannelId) return;
+  wsSend({ event: 'typing.start', channelId: currentChannelId });
+
+  // Reset typing timeout
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => {
+    wsSend({ event: 'typing.stop', channelId: currentChannelId });
+  }, 4000);
+}
+
+// --- Typing indicators ---
+function showTyping(userId, channelId) {
+  if (channelId !== currentChannelId) return;
+  if (!typingUsers.has(channelId)) typingUsers.set(channelId, new Map());
+  const channelTyping = typingUsers.get(channelId);
+
+  // Clear existing timeout for this user
+  if (channelTyping.has(userId)) clearTimeout(channelTyping.get(userId));
+
+  // Set auto-clear
+  const timer = setTimeout(() => {
+    channelTyping.delete(userId);
+    renderTypingIndicator();
+  }, 6000);
+  channelTyping.set(userId, timer);
+  renderTypingIndicator();
+}
+
+function hideTyping(userId, channelId) {
+  if (!typingUsers.has(channelId)) return;
+  const channelTyping = typingUsers.get(channelId);
+  if (channelTyping.has(userId)) {
+    clearTimeout(channelTyping.get(userId));
+    channelTyping.delete(userId);
+  }
+  if (channelId === currentChannelId) renderTypingIndicator();
+}
+
+function renderTypingIndicator() {
+  const el = document.getElementById('typing-indicator');
+  if (!el || !currentChannelId) return;
+  const channelTyping = typingUsers.get(currentChannelId);
+  if (!channelTyping || channelTyping.size === 0) {
+    el.textContent = '';
+    return;
+  }
+  const names = Array.from(channelTyping.keys()).map(id => getUserName(id));
+  if (names.length === 1) {
+    el.textContent = `${names[0]} is typing...`;
+  } else if (names.length === 2) {
+    el.textContent = `${names[0]} and ${names[1]} are typing...`;
+  } else {
+    el.textContent = `${names.length} people are typing...`;
+  }
+}
+
+// --- Voice ---
+function joinVoice(channelId, channelName) {
+  if (voiceChannelId === channelId) return; // already in this channel
+
+  // Leave current voice if any
+  if (voiceChannelId) {
+    wsSend({ event: 'voice.leave', serverId: currentServerId, channelId: voiceChannelId });
+  }
+
+  voiceChannelId = channelId;
+  wsSend({ event: 'voice.join', serverId: currentServerId, channelId });
+
+  document.getElementById('voice-banner').classList.add('active');
+  document.getElementById('voice-channel-name').textContent = channelName;
+
+  // Update channel highlight
+  document.querySelectorAll('[data-voice-channel-id]').forEach(el => {
+    el.classList.toggle('active', el.dataset.voiceChannelId === channelId);
+  });
+}
+
+function leaveVoice() {
+  if (!voiceChannelId) return;
+  wsSend({ event: 'voice.leave', serverId: currentServerId, channelId: voiceChannelId });
+  voiceChannelId = null;
+  document.getElementById('voice-banner').classList.remove('active');
+  document.querySelectorAll('[data-voice-channel-id]').forEach(el => el.classList.remove('active'));
+  refreshVoicePresence();
+}
+
+async function refreshVoicePresence() {
+  if (!currentServerId) return;
+  const data = await api(`/api/voice-presence?serverId=${currentServerId}`);
+
+  // Group by channel
+  const byChannel = {};
+  data.items.forEach(p => {
+    if (!byChannel[p.channelId]) byChannel[p.channelId] = [];
+    byChannel[p.channelId].push(p);
+  });
+
+  // Render voice users under each voice channel
+  channels.filter(c => c.type === 'voice').forEach(c => {
+    const el = document.getElementById(`voice-users-${c.id}`);
+    if (!el) return;
+    const users = byChannel[c.id] || [];
+    el.innerHTML = users.map(u => `
+      <div class="voice-user">
+        <div class="voice-user-dot"></div>
+        ${getUserName(u.userId)}
+      </div>
+    `).join('');
+  });
+}
+
+// --- Members ---
+function renderMembers(memberList) {
+  const el = document.getElementById('member-list');
+  el.innerHTML = '';
+
+  const owners = memberList.filter(m => m.role === 'owner');
+  const admins = memberList.filter(m => m.role === 'admin');
+  const mems = memberList.filter(m => m.role === 'member');
+
+  const renderGroup = (label, list) => {
+    if (list.length === 0) return;
+    const cat = document.createElement('div');
+    cat.className = 'member-category';
+    cat.textContent = `${label} \u2014 ${list.length}`;
+    el.appendChild(cat);
+
+    list.forEach(m => {
+      const item = document.createElement('div');
+      item.className = 'member-item';
+      item.dataset.memberId = m.userId;
+      const color = getUserColor(m.userId);
+      const initial = (m.name || '?')[0].toUpperCase();
+      item.innerHTML = `
+        <div class="member-avatar color-${color}">
+          ${initial}
+          <div class="member-presence online"></div>
+        </div>
+        <div class="member-name">${m.name || m.userId}</div>
+      `;
+      el.appendChild(item);
+    });
+  };
+
+  renderGroup('Owner', owners);
+  renderGroup('Admin', admins);
+  renderGroup('Members', mems);
+}
+
+function updateMemberPresence(userId, status) {
+  const item = document.querySelector(`[data-member-id="${userId}"] .member-presence`);
+  if (item) {
+    item.className = `member-presence ${status}`;
+  }
+}
+
+// --- Members loading ---
+async function loadMembers(serverId) {
+  const data = await api(`/api/members?serverId=${serverId}`);
+  members = data.items;
+  renderMembers(members);
+}
+
+// --- Heartbeat ---
+setInterval(() => {
+  wsSend({ event: 'heartbeat' });
+}, 25000);
+</script>
+</body>
+</html>
