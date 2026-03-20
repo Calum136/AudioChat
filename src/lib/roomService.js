@@ -14,8 +14,8 @@ export async function getRoomByJoinCode(joinCode) {
   const { data, error } = await supabase
     .from('rooms')
     .select('*')
-    .eq('join_code', joinCode.toLowerCase())
-    .single();
+    .eq('join_code', joinCode.trim().toLowerCase())
+    .maybeSingle();
   if (error) throw error;
   return data;
 }

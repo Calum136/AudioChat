@@ -43,16 +43,23 @@ export const useAuthStore = create((set, get) => ({
 
   signUp: async ({ email, password, displayName, color }) => {
     set({ error: null });
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { display_name: displayName, color },
+      },
+    });
     if (error) { set({ error: error.message }); return false; }
 
-    // Insert profile
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert({ id: data.user.id, display_name: displayName, color });
-    if (profileError) { set({ error: profileError.message }); return false; }
-
-    await get().fetchProfile(data.user.id);
+    // Profile is auto-created by DB trigger from user metadata.
+    // If email confirmation is disabled, we have a session immediately.
+    if (data.session) {
+      await get().fetchProfile(data.user.id);
+    } else {
+      // Email confirmation enabled — user needs to verify first
+      set({ error: 'Check your email to confirm your account, then sign in.' });
+    }
     return true;
   },
 
