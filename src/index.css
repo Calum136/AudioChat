@@ -816,12 +816,50 @@ body {
 .room-view {
   flex: 1;
   position: relative;
-  overflow: hidden;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .room-view.editing {
   outline: 2px dashed rgba(232, 168, 56, 0.25);
   outline-offset: -2px;
+}
+
+/* Isometric floor container */
+.iso-floor {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Pixel art rendering — crisp scaling */
+.floor-tile,
+.furniture-sprite,
+.avatar-sprite,
+.palette-sprite {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.floor-tile {
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+/* Edit mode grid overlay cells */
+.grid-cell {
+  pointer-events: none;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
+.grid-cell.available {
+  background: rgba(78, 205, 196, 0.04);
+  border: 1px solid rgba(78, 205, 196, 0.08);
+}
+
+.grid-cell.occupied {
+  background: rgba(232, 168, 56, 0.06);
 }
 
 .room-empty {
@@ -844,58 +882,28 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  transition: box-shadow 0.2s, transform 0.15s;
+  justify-content: flex-end;
+  transition: filter 0.15s;
   user-select: none;
-}
-
-.furniture-item.has-seats {
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.furniture-item.decor {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .furniture-item.editable {
   cursor: grab;
-  border-style: dashed;
-  border-color: rgba(232, 168, 56, 0.25);
 }
 
 .furniture-item.editable:hover {
-  border-color: rgba(232, 168, 56, 0.5);
-  box-shadow: 0 0 20px rgba(232, 168, 56, 0.1);
-  transform: scale(1.02);
+  filter: brightness(1.2) drop-shadow(0 0 8px rgba(232, 168, 56, 0.4));
 }
 
 .furniture-item.dragging {
   cursor: grabbing;
-  opacity: 0.85;
-  z-index: 100;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  opacity: 0.8;
+  filter: brightness(1.3) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
 }
 
-.furniture-body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
+.furniture-sprite {
   pointer-events: none;
-}
-
-.furniture-icon {
-  color: var(--text-secondary);
-  opacity: 0.85;
-}
-
-.furniture-name {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  white-space: nowrap;
+  display: block;
 }
 
 .furniture-remove {
@@ -971,34 +979,62 @@ body {
   height: 10px;
 }
 
-.seat-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #0a0a14;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+/* Pixel avatar (replaced old circle avatar) */
+.seat-avatar-pixel {
   animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
 }
 
-.seat-marker.is-me .seat-avatar {
-  box-shadow:
-    0 0 0 2px var(--bg-deep),
-    0 0 0 4px var(--teal),
-    0 2px 10px rgba(0, 0, 0, 0.35);
+.seat-avatar-pixel .avatar-sprite {
+  display: block;
+}
+
+.seat-avatar-pixel.is-me {
+  filter: drop-shadow(0 0 4px var(--teal));
 }
 
 .seat-marker.is-me {
   cursor: pointer;
 }
 
-/* Speaking glow on seat markers */
-.seat-avatar.speaking {
-  animation: speakPulse 1s infinite;
+/* Speaking waves next to pixel avatar */
+.seat-avatar-pixel.speaking {
+  animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), speakBounce 0.6s infinite alternate;
+}
+
+.speaking-waves {
+  position: absolute;
+  top: 25%;
+  right: -8px;
+  width: 6px;
+  height: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.speaking-waves::before,
+.speaking-waves::after {
+  content: '';
+  width: 3px;
+  height: 3px;
+  background: var(--teal);
+  border-radius: 50%;
+  animation: speakDot 0.4s infinite alternate;
+}
+
+.speaking-waves::after {
+  animation-delay: 0.2s;
+}
+
+@keyframes speakBounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(-2px); }
+}
+
+@keyframes speakDot {
+  from { opacity: 0.4; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1.2); }
 }
 
 /* ==============================================

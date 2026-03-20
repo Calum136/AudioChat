@@ -1,6 +1,11 @@
+import { useMemo } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useRoomStore } from '../stores/roomStore';
 import { useVoiceStore } from '../stores/voiceStore';
+import { sittingAvatar, getAvatarPalette } from '../data/sprites/avatarSprites';
+import { renderPixelGrid } from '../lib/spriteRenderer';
+
+const AVATAR_SCALE = 3;
 
 export default function SeatMarker({ furnitureId, seatIndex, seat }) {
   const user = useAuthStore((s) => s.user);
@@ -18,12 +23,21 @@ export default function SeatMarker({ furnitureId, seatIndex, seat }) {
   const myParticipant = user ? participants[user.id] : null;
   const isSpeaking = occupant && speakingMap[occupant.id];
 
+  // Render pixel avatar for occupant
+  const avatarUrl = useMemo(() => {
+    if (!occupant) return null;
+    const palette = getAvatarPalette(occupant.color || '#5577bb');
+    return renderPixelGrid(sittingAvatar.grid, palette, AVATAR_SCALE);
+  }, [occupant]);
+
+  const avatarW = sittingAvatar.grid[0].length * AVATAR_SCALE;
+  const avatarH = sittingAvatar.grid.length * AVATAR_SCALE;
+
   const handleClick = () => {
     if (isEditing || !user) return;
     if (iAmHere) {
       standUp(user.id);
     } else if (!occupant) {
-      // Stand up from current seat first
       if (myParticipant?.seatFurnitureId) standUp(user.id);
       sitDown(user.id, furnitureId, seatIndex);
     }
@@ -33,19 +47,26 @@ export default function SeatMarker({ furnitureId, seatIndex, seat }) {
     <div
       className={`seat-marker ${occupant ? 'occupied' : 'available'} ${iAmHere ? 'is-me' : ''} ${isEditing ? 'editing' : ''}`}
       style={{
-        left: seat.offsetX,
-        top: seat.offsetY,
+        position: 'absolute',
+        left: '50%',
+        top: '50%',
+        marginLeft: seat.offsetX,
+        marginTop: seat.offsetY,
         transform: 'translate(-50%, -50%)',
       }}
       onClick={handleClick}
       title={occupant ? `${occupant.displayName} is here` : `${seat.label} (click to sit)`}
     >
       {occupant ? (
-        <div
-          className={`seat-avatar ${isSpeaking ? 'speaking' : ''}`}
-          style={{ background: occupant.color }}
-        >
-          {occupant.displayName[0]}
+        <div className={`seat-avatar-pixel ${isSpeaking ? 'speaking' : ''} ${iAmHere ? 'is-me' : ''}`}>
+          <img
+            src={avatarUrl}
+            className="avatar-sprite"
+            style={{ width: avatarW, height: avatarH }}
+            draggable={false}
+            alt={occupant.displayName}
+          />
+          {isSpeaking && <div className="speaking-waves" />}
         </div>
       ) : (
         <div className="seat-dot" />

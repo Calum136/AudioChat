@@ -83,12 +83,16 @@ export const useRoomStore = create((set, get) => ({
   _enterRoom: async (room, user) => {
     // Load furniture from DB
     const furnitureRows = await roomService.loadFurniture(room.id);
-    const furniture = furnitureRows.map((f) => ({
-      id: f.id,
-      type: f.type,
-      x: f.x,
-      y: f.y,
-    }));
+    const furniture = furnitureRows.map((f) => {
+      // Migration: old rooms stored pixel coords (100+), new system uses grid coords (0-7)
+      const needsMigration = f.x > 20 || f.y > 20;
+      return {
+        id: f.id,
+        type: f.type,
+        x: needsMigration ? Math.min(Math.floor(f.x / 80), 7) : (f.x ?? 0),
+        y: needsMigration ? Math.min(Math.floor(f.y / 80), 7) : (f.y ?? 0),
+      };
+    });
 
     // Set up Realtime channel
     const channel = createRoomChannel(room.id, {
