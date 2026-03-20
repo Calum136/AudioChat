@@ -15,6 +15,10 @@ export const useRoomStore = create((set, get) => ({
   ownerId: null,
   theme: 'gaming-den',
 
+  // My rooms (persisted rooms for current user)
+  myRooms: [],
+  myRoomsLoading: false,
+
   // Edit mode toggle (owner only)
   isEditing: false,
   toggleEditing: () => set((s) => ({ isEditing: !s.isEditing })),
@@ -30,6 +34,17 @@ export const useRoomStore = create((set, get) => ({
 
   // ======== Room Lifecycle ========
 
+  loadMyRooms: async (userId) => {
+    set({ myRoomsLoading: true });
+    try {
+      const rooms = await roomService.getUserRooms(userId);
+      set({ myRooms: rooms, myRoomsLoading: false });
+    } catch (e) {
+      console.error('Failed to load rooms:', e);
+      set({ myRoomsLoading: false });
+    }
+  },
+
   createRoom: async (name, user) => {
     const room = await roomService.createRoom(name, user.id);
     await get()._enterRoom(room, user);
@@ -37,7 +52,11 @@ export const useRoomStore = create((set, get) => ({
 
   joinRoom: async (joinCode, user) => {
     const room = await roomService.getRoomByJoinCode(joinCode);
-    if (!room) throw new Error('Room not found');
+    if (!room) throw new Error('Room not found. Check the code and try again.');
+    await get()._enterRoom(room, user);
+  },
+
+  rejoinRoom: async (room, user) => {
     await get()._enterRoom(room, user);
   },
 
@@ -57,6 +76,7 @@ export const useRoomStore = create((set, get) => ({
       participants: {},
       isEditing: false,
       _channel: null,
+      myRooms: [],
     });
   },
 

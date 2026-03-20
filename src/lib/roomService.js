@@ -11,13 +11,24 @@ export async function createRoom(name, ownerId) {
 }
 
 export async function getRoomByJoinCode(joinCode) {
+  const normalized = joinCode.trim().toLowerCase();
   const { data, error } = await supabase
     .from('rooms')
     .select('*')
-    .eq('join_code', joinCode.trim().toLowerCase())
+    .ilike('join_code', normalized)
     .maybeSingle();
   if (error) throw error;
   return data;
+}
+
+export async function getUserRooms(userId) {
+  const { data, error } = await supabase
+    .from('rooms')
+    .select('*')
+    .eq('owner_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
 }
 
 export async function getRoom(roomId) {
