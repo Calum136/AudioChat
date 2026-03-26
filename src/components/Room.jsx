@@ -224,7 +224,7 @@ export default function Room() {
                 className="wall-tile"
                 style={{
                   position: 'absolute',
-                  left: x - HALF_TILE,
+                  left: x,
                   top: y - WALL_H,
                   width: wallData.left.width,
                   height: wallData.left.height,
@@ -245,7 +245,7 @@ export default function Room() {
                 className="wall-tile"
                 style={{
                   position: 'absolute',
-                  left: x,
+                  left: x - wallData.right.width,
                   top: y - WALL_H,
                   width: wallData.right.width,
                   height: wallData.right.height,
@@ -270,7 +270,7 @@ export default function Room() {
                   top: y - WALL_H,
                   width: wallData.corner.width,
                   height: wallData.corner.height,
-                  zIndex: 1,
+                  zIndex: 0,
                 }}
                 draggable={false}
                 alt=""
