@@ -3,7 +3,7 @@ import { useRoomStore } from '../stores/roomStore';
 import { THEMES } from '../data/themes';
 import { FURNITURE_CATALOG } from '../data/furniture';
 import { FLOOR_TILES } from '../data/sprites/floorSprites';
-import { WALL_TILES, WALL_H, SPRITE_H, HALF_TILE, TILE_HALF_H } from '../data/sprites/wallSprites';
+import { WALL_SPRITES, WALL_H, HALF_TILE, TILE_HALF_H } from '../data/sprites/wallSprites';
 import { renderPixelGrid } from '../lib/spriteRenderer';
 import { isoToScreen, screenToIso, snapToGrid, isInBounds, getDepth, TILE_W, TILE_H } from '../lib/isoGrid';
 import { useAuthStore } from '../stores/authStore';
@@ -33,14 +33,26 @@ export default function Room() {
     return renderPixelGrid(tile.grid, tile.palette, 1);
   }, [theme]);
 
-  // Generate wall tile images for current theme
-  const wallUrls = useMemo(() => {
-    const tiles = WALL_TILES[theme];
-    if (!tiles) return null;
+  // Generate wall images for current theme (single sprite per wall face)
+  const wallData = useMemo(() => {
+    const sprites = WALL_SPRITES[theme];
+    if (!sprites) return null;
     return {
-      left: renderPixelGrid(tiles.left.grid, tiles.left.palette, 1),
-      right: renderPixelGrid(tiles.right.grid, tiles.right.palette, 1),
-      corner: renderPixelGrid(tiles.corner.grid, tiles.corner.palette, 1),
+      left: {
+        url: renderPixelGrid(sprites.left.grid, sprites.left.palette, 1),
+        width: sprites.left.width,
+        height: sprites.left.height,
+      },
+      right: {
+        url: renderPixelGrid(sprites.right.grid, sprites.right.palette, 1),
+        width: sprites.right.width,
+        height: sprites.right.height,
+      },
+      corner: {
+        url: renderPixelGrid(sprites.corner.grid, sprites.corner.palette, 1),
+        width: sprites.corner.width,
+        height: sprites.corner.height,
+      },
     };
   }, [theme]);
 
@@ -203,64 +215,61 @@ export default function Room() {
             position: 'relative',
           }}
         >
-          {/* Left wall (along gy=0 edge) — pixel art sprites */}
-          {wallUrls && Array.from({ length: ROOM_GRID_W }, (_, gx) => {
-            const { x, y } = isoToScreen(gx, 0, originX, originY);
+          {/* Left wall — single continuous sprite along gy=0 edge */}
+          {wallData && (() => {
+            const { x, y } = isoToScreen(0, 0, originX, originY);
             return (
               <img
-                key={`wl-${gx}`}
-                src={wallUrls.left}
+                src={wallData.left.url}
                 className="wall-tile"
                 style={{
                   position: 'absolute',
-                  left: x - TILE_W / 2,
+                  left: x - HALF_TILE,
                   top: y - WALL_H,
-                  width: HALF_TILE,
-                  height: SPRITE_H,
+                  width: wallData.left.width,
+                  height: wallData.left.height,
                   zIndex: 0,
                 }}
                 draggable={false}
                 alt=""
               />
             );
-          })}
+          })()}
 
-          {/* Right wall (along gx=0 edge) — pixel art sprites */}
-          {wallUrls && Array.from({ length: ROOM_GRID_H }, (_, gy) => {
-            const { x, y } = isoToScreen(0, gy, originX, originY);
+          {/* Right wall — single continuous sprite along gx=0 edge */}
+          {wallData && (() => {
+            const { x, y } = isoToScreen(0, 0, originX, originY);
             return (
               <img
-                key={`wr-${gy}`}
-                src={wallUrls.right}
+                src={wallData.right.url}
                 className="wall-tile"
                 style={{
                   position: 'absolute',
                   left: x,
                   top: y - WALL_H,
-                  width: HALF_TILE,
-                  height: SPRITE_H,
+                  width: wallData.right.width,
+                  height: wallData.right.height,
                   zIndex: 0,
                 }}
                 draggable={false}
                 alt=""
               />
             );
-          })}
+          })()}
 
           {/* Corner column where walls meet */}
-          {wallUrls && (() => {
+          {wallData && (() => {
             const { x, y } = isoToScreen(0, 0, originX, originY);
-            const cornerW = WALL_TILES[theme].corner.grid[0].length;
             return (
               <img
-                src={wallUrls.corner}
+                src={wallData.corner.url}
                 className="wall-tile"
                 style={{
                   position: 'absolute',
-                  left: x - cornerW / 2,
+                  left: x - wallData.corner.width / 2,
                   top: y - WALL_H,
-                  width: cornerW,
-                  height: SPRITE_H,
+                  width: wallData.corner.width,
+                  height: wallData.corner.height,
                   zIndex: 1,
                 }}
                 draggable={false}

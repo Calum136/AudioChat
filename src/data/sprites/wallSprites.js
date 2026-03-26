@@ -1,85 +1,79 @@
 /**
- * Isometric wall tile sprites — procedurally generated parallelograms.
- * Left wall: slopes up-right (along gy=0 edge), lit from top-left (lighter).
- * Right wall: slopes up-left (along gx=0 edge), darker (facing away from light).
+ * Isometric wall sprites — one large sprite per wall face.
+ * Instead of tiling small parallelogram tiles (which creates gaps),
+ * we generate a single sprite for the entire left wall and right wall.
  *
- * Each wall tile covers one grid cell's edge and extends upward by WALL_HEIGHT.
- * The parallelogram shape is baked into the pixel grid (transparent outside).
- *
- * Habbo Hotel style: clean panel lines, baseboard trim, subtle brick/panel texture.
+ * Left wall: runs along gy=0 edge (slopes down-right), lit from top-left.
+ * Right wall: runs along gx=0 edge (slopes down-left), in shadow.
  */
 
-const HALF_TILE = 32;  // TILE_W / 2
-const WALL_H = 80;     // wall height in pixels
-const TILE_HALF_H = 16; // TILE_H / 2
-
-// Total sprite height: wall + half tile (the slope at bottom)
-const SPRITE_H = WALL_H + TILE_HALF_H;
+const TILE_W = 64;
+const HALF_TILE = 32;
+const TILE_H = 32;
+const TILE_HALF_H = 16;
+const WALL_H = 80;
 
 /**
- * Generate a left wall tile (slopes up-right, gy=0 edge).
- * Parallelogram: top-left at (0, TILE_HALF_H), top-right at (W-1, 0),
- * bottom-right at (W-1, WALL_H), bottom-left at (0, SPRITE_H-1).
+ * Generate a complete left wall sprite for N grid cells.
+ * The wall is a large parallelogram: top-left at (0, TILE_HALF_H),
+ * top-right at (N * HALF_TILE, TILE_HALF_H + N * TILE_HALF_H - TILE_HALF_H),
+ * extending WALL_H pixels down from the top edge.
  *
- * palette: [transparent, wallBase, wallDark, wallLight, wallTrim, wallPattern, wallHighlight]
+ * Returns { grid, palette, width, height }
  */
-function makeLeftWall(palette) {
-  const W = HALF_TILE;
-  const H = SPRITE_H;
+function makeFullLeftWall(gridSize, palette) {
+  const W = gridSize * HALF_TILE;
+  const H = WALL_H + (gridSize - 1) * TILE_HALF_H + TILE_HALF_H;
   const grid = [];
 
   for (let y = 0; y < H; y++) {
     const row = [];
     for (let x = 0; x < W; x++) {
-      // Top edge: y_top(x) = TILE_HALF_H * (1 - x / (W - 1))
-      // Bottom edge: y_bot(x) = (SPRITE_H - 1) - x * (TILE_HALF_H / (W - 1))
-      const topY = TILE_HALF_H * (1 - x / (W - 1));
-      const botY = (SPRITE_H - 1) - x * (TILE_HALF_H / (W - 1));
+      // Top edge slopes down-right: y_top(x) = TILE_HALF_H + x * (TILE_HALF_H / HALF_TILE) - TILE_HALF_H
+      // Simplified: y_top(x) = x * 0.5  (the iso 2:1 slope)
+      const topY = x * (TILE_HALF_H / HALF_TILE);
+      const botY = topY + WALL_H;
 
       if (y < topY || y > botY) {
         row.push(0); // transparent
       } else {
         const relY = y - topY;
-        const wallHeight = botY - topY;
 
         // Edge detection
         const isTopEdge = relY < 1;
-        const isBotEdge = relY > wallHeight - 3;
+        const isBotEdge = relY > WALL_H - 3;
         const isLeftEdge = x < 1;
         const isRightEdge = x >= W - 1;
 
-        // Top/bottom/side edges = trim
         if (isTopEdge || isLeftEdge || isRightEdge) {
           row.push(4); // trim
         } else if (isBotEdge) {
-          // Baseboard: 3px thick trim at bottom
-          row.push(4);
+          row.push(4); // baseboard
         } else {
-          // Wall body — Habbo-style vertical panel strips with horizontal wainscoting
-          const panelWidth = 10;
+          // Panel texture
+          const panelWidth = 12;
           const panelX = x % panelWidth;
           const isPanelEdge = panelX === 0;
 
-          // Wainscoting line at 60% height
-          const wainscotY = wallHeight * 0.6;
+          // Wainscoting at 60% wall height
+          const wainscotY = WALL_H * 0.6;
           const isWainscot = Math.abs(relY - wainscotY) < 1;
 
-          // Chair rail at 35% height
-          const chairRailY = wallHeight * 0.35;
+          // Chair rail at 35%
+          const chairRailY = WALL_H * 0.35;
           const isChairRail = Math.abs(relY - chairRailY) < 1;
 
           if (isPanelEdge || isWainscot || isChairRail) {
-            row.push(5); // pattern/groove lines
+            row.push(5); // pattern lines
           } else {
-            // Gradient: left side lighter (lit), right side darker
-            const t = x / W; // 0 = left edge, 1 = right edge
-            if (t < 0.3) {
-              // Top portion above wainscot is lighter
-              row.push(relY < wainscotY ? 6 : 3); // highlight / light
+            // Gradient: left lighter (lit), right darker
+            const t = x / W;
+            if (t < 0.35) {
+              row.push(relY < wainscotY ? 6 : 3);
             } else if (t < 0.65) {
-              row.push(relY < wainscotY ? 3 : 1); // light / base
+              row.push(relY < wainscotY ? 3 : 1);
             } else {
-              row.push(relY < wainscotY ? 1 : 2); // base / dark
+              row.push(relY < wainscotY ? 1 : 2);
             }
           }
         }
@@ -87,34 +81,32 @@ function makeLeftWall(palette) {
     }
     grid.push(row);
   }
-  return grid;
+  return { grid, palette, width: W, height: H };
 }
 
 /**
- * Generate a right wall tile (slopes up-left, gx=0 edge).
- * Mirror of left wall. Darker overall (facing away from light).
+ * Generate a complete right wall sprite for N grid cells.
+ * Slopes down-left. Darker overall (shadow side).
  */
-function makeRightWall(palette) {
-  const W = HALF_TILE;
-  const H = SPRITE_H;
+function makeFullRightWall(gridSize, palette) {
+  const W = gridSize * HALF_TILE;
+  const H = WALL_H + (gridSize - 1) * TILE_HALF_H + TILE_HALF_H;
   const grid = [];
 
   for (let y = 0; y < H; y++) {
     const row = [];
     for (let x = 0; x < W; x++) {
-      // Top edge: y_top(x) = x * (TILE_HALF_H / (W - 1))
-      // Bottom edge: y_bot(x) = WALL_H + x * (TILE_HALF_H / (W - 1))
-      const topY = x * (TILE_HALF_H / (W - 1));
-      const botY = WALL_H + x * (TILE_HALF_H / (W - 1));
+      // Top edge slopes down-left: y_top(x) = (W - 1 - x) * 0.5
+      const topY = (W - 1 - x) * (TILE_HALF_H / HALF_TILE);
+      const botY = topY + WALL_H;
 
       if (y < topY || y > botY) {
         row.push(0);
       } else {
         const relY = y - topY;
-        const wallHeight = botY - topY;
 
         const isTopEdge = relY < 1;
-        const isBotEdge = relY > wallHeight - 3;
+        const isBotEdge = relY > WALL_H - 3;
         const isLeftEdge = x < 1;
         const isRightEdge = x >= W - 1;
 
@@ -123,28 +115,26 @@ function makeRightWall(palette) {
         } else if (isBotEdge) {
           row.push(4);
         } else {
-          // Right wall is in shadow — darker overall
-          const panelWidth = 10;
+          // Darker overall — right wall in shadow
+          const panelWidth = 12;
           const panelX = (W - 1 - x) % panelWidth;
           const isPanelEdge = panelX === 0;
 
-          const wainscotY = wallHeight * 0.6;
+          const wainscotY = WALL_H * 0.6;
           const isWainscot = Math.abs(relY - wainscotY) < 1;
 
-          const chairRailY = wallHeight * 0.35;
+          const chairRailY = WALL_H * 0.35;
           const isChairRail = Math.abs(relY - chairRailY) < 1;
 
           if (isPanelEdge || isWainscot || isChairRail) {
             row.push(5);
           } else {
-            // Gradient: mostly dark, slight lighter spot on left
+            // Mostly dark with slight variation
             const t = x / W;
-            if (t < 0.25) {
-              row.push(relY < wainscotY ? 1 : 2); // base / dark
-            } else if (t < 0.6) {
-              row.push(2); // dark
+            if (t < 0.3) {
+              row.push(relY < wainscotY ? 1 : 2);
             } else {
-              row.push(2); // shadow side stays dark
+              row.push(2);
             }
           }
         }
@@ -152,30 +142,30 @@ function makeRightWall(palette) {
     }
     grid.push(row);
   }
-  return grid;
+  return { grid, palette, width: W, height: H };
 }
 
 /**
- * Generate a corner column sprite — vertical pillar where walls meet.
+ * Generate a corner column sprite.
  */
 function makeCorner(palette) {
-  const W = 6;
-  const H = SPRITE_H;
+  const W = 4;
+  const H = WALL_H;
   const grid = [];
   for (let y = 0; y < H; y++) {
     const row = [];
     for (let x = 0; x < W; x++) {
       if (x === 0 || x === W - 1) {
-        row.push(4); // edge trim
-      } else if (x <= 2) {
-        row.push(6); // highlight (lit side)
+        row.push(4);
+      } else if (x === 1) {
+        row.push(6);
       } else {
-        row.push(2); // dark side
+        row.push(2);
       }
     }
     grid.push(row);
   }
-  return grid;
+  return { grid, palette, width: W, height: H };
 }
 
 // Theme wall palettes: [transparent, base, dark, light, trim, pattern, highlight]
@@ -218,14 +208,16 @@ const WALL_PALETTES = {
   ],
 };
 
-export const WALL_TILES = {};
+const GRID_SIZE = 8;
+
+export const WALL_SPRITES = {};
 
 for (const [theme, palette] of Object.entries(WALL_PALETTES)) {
-  WALL_TILES[theme] = {
-    left: { grid: makeLeftWall(palette), palette },
-    right: { grid: makeRightWall(palette), palette },
-    corner: { grid: makeCorner(palette), palette },
+  WALL_SPRITES[theme] = {
+    left: makeFullLeftWall(GRID_SIZE, palette),
+    right: makeFullRightWall(GRID_SIZE, palette),
+    corner: makeCorner(palette),
   };
 }
 
-export { WALL_H, SPRITE_H, HALF_TILE, TILE_HALF_H };
+export { WALL_H, TILE_HALF_H, HALF_TILE, GRID_SIZE };
