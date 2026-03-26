@@ -49,6 +49,13 @@ export const useRoomStore = create((set, get) => ({
     }
   },
 
+  deleteRoom: async (roomId, userId) => {
+    await roomService.deleteRoom(roomId);
+    // Refresh room list
+    const rooms = await roomService.getUserRooms(userId);
+    set({ myRooms: rooms });
+  },
+
   createRoom: async (name, user) => {
     const room = await roomService.createRoom(name, user.id);
     await get()._enterRoom(room, user);
@@ -134,6 +141,13 @@ export const useRoomStore = create((set, get) => ({
           furniture: s.furniture.filter((f) => f.id !== payload.id),
         }));
       },
+      onFurnitureFlip: (payload) => {
+        set((s) => ({
+          furniture: s.furniture.map((f) =>
+            f.id === payload.id ? { ...f, flipped: payload.flipped } : f
+          ),
+        }));
+      },
       onThemeChange: (payload) => {
         set({ theme: payload.theme });
       },
@@ -192,6 +206,21 @@ export const useRoomStore = create((set, get) => ({
     // Persist + broadcast
     await roomService.saveFurnitureMove(id, x, y);
     _channel.send({ type: 'broadcast', event: 'furniture:move', payload: { id, x, y } });
+  },
+
+  flipFurniture: (id) => {
+    const { _channel } = get();
+    set((s) => ({
+      furniture: s.furniture.map((f) =>
+        f.id === id ? { ...f, flipped: !f.flipped } : f
+      ),
+    }));
+    if (_channel) {
+      const item = get().furniture.find((f) => f.id === id);
+      if (item) {
+        _channel.send({ type: 'broadcast', event: 'furniture:flip', payload: { id, flipped: item.flipped } });
+      }
+    }
   },
 
   removeFurniture: async (id) => {

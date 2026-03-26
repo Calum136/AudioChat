@@ -10,6 +10,7 @@ export function createRoomChannel(roomId, callbacks) {
     onFurnitureAdd,
     onFurnitureMove,
     onFurnitureRemove,
+    onFurnitureFlip,
     onThemeChange,
   } = callbacks;
 
@@ -32,6 +33,10 @@ export function createRoomChannel(roomId, callbacks) {
 
   channel.on('broadcast', { event: 'furniture:remove' }, ({ payload }) => {
     onFurnitureRemove(payload);
+  });
+
+  channel.on('broadcast', { event: 'furniture:flip' }, ({ payload }) => {
+    onFurnitureFlip(payload);
   });
 
   channel.on('broadcast', { event: 'room:theme' }, ({ payload }) => {

@@ -858,4 +858,6 @@ export const FURNITURE_SPRITES = {
   rug: rugSprite,
   ceilinglight: ceilinglightSprite,
   bookcase: bookcaseSprite,
+  dog: dogSprite,
+  cactus: cactusSprite,
 };

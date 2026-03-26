@@ -10,10 +10,11 @@ const ROOM_GRID_W = 8;
 const ROOM_GRID_H = 8;
 const SPRITE_SCALE = 3; // Scale up pixel art 3x for visibility
 
-export default function FurnitureItem({ id, type, gridX, gridY, originX, originY }) {
+export default function FurnitureItem({ id, type, gridX, gridY, flipped, originX, originY }) {
   const isEditing = useRoomStore((s) => s.isEditing);
   const moveFurniture = useRoomStore((s) => s.moveFurniture);
   const removeFurniture = useRoomStore((s) => s.removeFurniture);
+  const flipFurniture = useRoomStore((s) => s.flipFurniture);
   const catalog = FURNITURE_CATALOG[type];
   const spriteData = FURNITURE_SPRITES[type];
   const [dragging, setDragging] = useState(false);
@@ -97,6 +98,13 @@ export default function FurnitureItem({ id, type, gridX, gridY, originX, originY
     window.addEventListener('mouseup', handleMouseUp);
   }, [isEditing, id, gridX, gridY, originX, originY, moveFurniture, catalog.tileW, catalog.tileH]);
 
+  const handleContextMenu = useCallback((e) => {
+    if (!isEditing) return;
+    e.preventDefault();
+    e.stopPropagation();
+    flipFurniture(id);
+  }, [isEditing, id, flipFurniture]);
+
   return (
     <div
       className={`furniture-item ${isEditing ? 'editable' : ''} ${dragging ? 'dragging' : ''} ${catalog.seats.length > 0 ? 'has-seats' : 'decor'}`}
@@ -110,11 +118,16 @@ export default function FurnitureItem({ id, type, gridX, gridY, originX, originY
         zIndex: depth + (dragging ? 1000 : 0),
       }}
       onMouseDown={handleMouseDown}
+      onContextMenu={handleContextMenu}
     >
       <img
         src={spriteUrl}
         className="furniture-sprite"
-        style={{ width: spriteW, height: spriteH }}
+        style={{
+          width: spriteW,
+          height: spriteH,
+          transform: flipped ? 'scaleX(-1)' : 'none',
+        }}
         draggable={false}
         alt={catalog.name}
       />
@@ -129,15 +142,27 @@ export default function FurnitureItem({ id, type, gridX, gridY, originX, originY
         />
       ))}
       {isEditing && (
-        <button
-          className="furniture-remove"
-          onClick={(e) => {
-            e.stopPropagation();
-            removeFurniture(id);
-          }}
-        >
-          &times;
-        </button>
+        <div className="furniture-edit-controls">
+          <button
+            className="furniture-flip"
+            onClick={(e) => {
+              e.stopPropagation();
+              flipFurniture(id);
+            }}
+            title="Flip"
+          >
+            ↔
+          </button>
+          <button
+            className="furniture-remove"
+            onClick={(e) => {
+              e.stopPropagation();
+              removeFurniture(id);
+            }}
+          >
+            &times;
+          </button>
+        </div>
       )}
     </div>
   );

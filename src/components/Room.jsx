@@ -1,4 +1,4 @@
-import { useRef, useMemo, useCallback } from 'react';
+import { useRef, useState, useMemo, useCallback } from 'react';
 import { useRoomStore } from '../stores/roomStore';
 import { THEMES } from '../data/themes';
 import { FURNITURE_CATALOG } from '../data/furniture';
@@ -23,8 +23,18 @@ export default function Room() {
   const selectedType = useRoomStore((s) => s.selectedFurnitureType);
   const setSelectedType = useRoomStore((s) => s.setSelectedFurnitureType);
   const user = useAuthStore((s) => s.user);
+  const flipFurniture = useRoomStore((s) => s.flipFurniture);
   const roomRef = useRef(null);
   const themeData = THEMES[theme];
+  const [zoom, setZoom] = useState(1);
+
+  // Zoom handler (mouse wheel)
+  const handleWheel = useCallback((e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      setZoom((z) => Math.min(2, Math.max(0.4, z + (e.deltaY > 0 ? -0.1 : 0.1))));
+    }
+  }, []);
 
   // Generate floor tile image for current theme
   const floorTileUrl = useMemo(() => {
@@ -197,6 +207,13 @@ export default function Room() {
         <span>{furniture.length} items</span>
         <span className="stat-dot">&middot;</span>
         <span>{totalSeats} seats</span>
+        <span className="stat-dot">&middot;</span>
+        <span className="zoom-controls">
+          <button className="zoom-btn" onClick={() => setZoom((z) => Math.max(0.4, z - 0.15))}>−</button>
+          <span className="zoom-level">{Math.round(zoom * 100)}%</span>
+          <button className="zoom-btn" onClick={() => setZoom((z) => Math.min(2, z + 0.15))}>+</button>
+          {zoom !== 1 && <button className="zoom-btn" onClick={() => setZoom(1)}>Reset</button>}
+        </span>
       </div>
       <div
         ref={roomRef}
@@ -205,11 +222,14 @@ export default function Room() {
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={handleClick}
+        onWheel={handleWheel}
       >
         {/* Isometric room with pixel art walls */}
         <div
           className="iso-floor"
           style={{
+            transform: `scale(${zoom})`,
+            transformOrigin: 'center center',
             width: roomPixelWidth,
             height: roomPixelHeight + TILE_H + WALL_H,
             position: 'relative',
@@ -343,6 +363,7 @@ export default function Room() {
               type={item.type}
               gridX={item.x}
               gridY={item.y}
+              flipped={item.flipped}
               originX={originX}
               originY={originY}
             />
