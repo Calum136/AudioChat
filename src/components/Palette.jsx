@@ -6,25 +6,28 @@ import { useRoomStore } from '../stores/roomStore';
 
 const THUMB_SCALE = 2;
 
-function PaletteCard({ type, item }) {
+function PaletteCard({ type, item, isSelected, onSelect }) {
   const spriteData = FURNITURE_SPRITES[type];
 
   const thumbUrl = useMemo(() => {
     if (!spriteData) return null;
-    return renderPixelGrid(spriteData.grid, spriteData.palette, THUMB_SCALE);
+    const grid = spriteData.frames ? spriteData.frames[0] : spriteData.grid;
+    return renderPixelGrid(grid, spriteData.palette, THUMB_SCALE);
   }, [spriteData]);
 
-  const thumbW = spriteData ? spriteData.grid[0].length * THUMB_SCALE : 28;
-  const thumbH = spriteData ? spriteData.grid.length * THUMB_SCALE : 28;
+  const grid = spriteData?.frames ? spriteData.frames[0] : spriteData?.grid;
+  const thumbW = grid ? grid[0].length * THUMB_SCALE : 28;
+  const thumbH = grid ? grid.length * THUMB_SCALE : 28;
 
   return (
     <div
-      className="palette-card"
+      className={`palette-card ${isSelected ? 'selected' : ''}`}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData('furniture-type', type);
         e.dataTransfer.effectAllowed = 'copy';
       }}
+      onClick={() => onSelect(isSelected ? null : type)}
     >
       {thumbUrl ? (
         <img
@@ -53,6 +56,8 @@ function PaletteCard({ type, item }) {
 
 export default function Palette() {
   const isEditing = useRoomStore((s) => s.isEditing);
+  const selectedType = useRoomStore((s) => s.selectedFurnitureType);
+  const setSelectedType = useRoomStore((s) => s.setSelectedFurnitureType);
 
   if (!isEditing) return null;
 
@@ -66,12 +71,15 @@ export default function Palette() {
   return (
     <div className="palette">
       <h3 className="palette-title">Furniture</h3>
+      {selectedType && (
+        <div className="palette-hint">Click on the room to place {FURNITURE_CATALOG[selectedType]?.name}</div>
+      )}
 
       <div className="palette-section">
         <h4>Seating</h4>
         <div className="palette-grid">
           {seating.map(([type, item]) => (
-            <PaletteCard key={type} type={type} item={item} />
+            <PaletteCard key={type} type={type} item={item} isSelected={selectedType === type} onSelect={setSelectedType} />
           ))}
         </div>
       </div>
@@ -80,7 +88,7 @@ export default function Palette() {
         <h4>Decor</h4>
         <div className="palette-grid">
           {decor.map(([type, item]) => (
-            <PaletteCard key={type} type={type} item={item} />
+            <PaletteCard key={type} type={type} item={item} isSelected={selectedType === type} onSelect={setSelectedType} />
           ))}
         </div>
       </div>

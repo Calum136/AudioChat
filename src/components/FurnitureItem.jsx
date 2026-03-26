@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRoomStore } from '../stores/roomStore';
 import { FURNITURE_CATALOG } from '../data/furniture';
 import { FURNITURE_SPRITES } from '../data/sprites/furnitureSprites';
@@ -17,17 +17,31 @@ export default function FurnitureItem({ id, type, gridX, gridY, originX, originY
   const catalog = FURNITURE_CATALOG[type];
   const spriteData = FURNITURE_SPRITES[type];
   const [dragging, setDragging] = useState(false);
+  const [frameIndex, setFrameIndex] = useState(0);
 
-  if (!catalog || !spriteData) return null;
+  const isAnimated = spriteData?.frames && spriteData.frames.length > 1;
+  const grid = isAnimated ? spriteData.frames[frameIndex] : spriteData?.grid;
+
+  // Animation frame cycling
+  useEffect(() => {
+    if (!isAnimated) return;
+    const delay = catalog?.frameDelay || 600;
+    const interval = setInterval(() => {
+      setFrameIndex((i) => (i + 1) % spriteData.frames.length);
+    }, delay);
+    return () => clearInterval(interval);
+  }, [isAnimated, spriteData?.frames?.length, catalog?.frameDelay]);
+
+  if (!catalog || !spriteData || !grid) return null;
 
   // Render sprite to data URL
   const spriteUrl = useMemo(() => {
-    return renderPixelGrid(spriteData.grid, spriteData.palette, SPRITE_SCALE);
-  }, [spriteData]);
+    return renderPixelGrid(grid, spriteData.palette, SPRITE_SCALE);
+  }, [grid, spriteData.palette]);
 
   // Sprite display dimensions
-  const spriteW = spriteData.grid[0].length * SPRITE_SCALE;
-  const spriteH = spriteData.grid.length * SPRITE_SCALE;
+  const spriteW = grid[0].length * SPRITE_SCALE;
+  const spriteH = grid.length * SPRITE_SCALE;
 
   // Convert grid position to screen position
   const { x: screenX, y: screenY } = isoToScreen(gridX, gridY, originX, originY);
@@ -86,6 +100,7 @@ export default function FurnitureItem({ id, type, gridX, gridY, originX, originY
   return (
     <div
       className={`furniture-item ${isEditing ? 'editable' : ''} ${dragging ? 'dragging' : ''} ${catalog.seats.length > 0 ? 'has-seats' : 'decor'}`}
+      data-type={type}
       style={{
         position: 'absolute',
         left: spriteLeft,

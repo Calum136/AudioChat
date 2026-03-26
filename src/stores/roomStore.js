@@ -21,7 +21,11 @@ export const useRoomStore = create((set, get) => ({
 
   // Edit mode toggle (owner only)
   isEditing: false,
-  toggleEditing: () => set((s) => ({ isEditing: !s.isEditing })),
+  toggleEditing: () => set((s) => ({ isEditing: !s.isEditing, selectedFurnitureType: null })),
+
+  // Click-to-place: selected furniture type from palette
+  selectedFurnitureType: null,
+  setSelectedFurnitureType: (type) => set({ selectedFurnitureType: type }),
 
   // Furniture state (from Supabase)
   furniture: [],
@@ -106,6 +110,8 @@ export const useRoomStore = create((set, get) => ({
               color: p.color,
               seatFurnitureId: p.seatFurnitureId || null,
               seatIndex: p.seatIndex ?? null,
+              gridX: p.gridX ?? null,
+              gridY: p.gridY ?? null,
             };
           }
         }
@@ -134,6 +140,11 @@ export const useRoomStore = create((set, get) => ({
     });
 
     // Subscribe and track presence
+    // Pick a spawn position (center-ish of room, offset by user hash to avoid overlap)
+    const hash = parseInt((user.id || '').replace(/\D/g, '').slice(0, 4) || '0', 10);
+    const spawnX = 3 + (hash % 3);
+    const spawnY = 3 + (Math.floor(hash / 3) % 3);
+
     await channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
         await channel.track({
@@ -142,6 +153,8 @@ export const useRoomStore = create((set, get) => ({
           color: user.color,
           seatFurnitureId: null,
           seatIndex: null,
+          gridX: spawnX,
+          gridY: spawnY,
         });
       }
     });
@@ -204,6 +217,8 @@ export const useRoomStore = create((set, get) => ({
       color: me.color,
       seatFurnitureId: furnitureId,
       seatIndex,
+      gridX: me.gridX,
+      gridY: me.gridY,
     });
   },
 
@@ -217,6 +232,23 @@ export const useRoomStore = create((set, get) => ({
       color: me.color,
       seatFurnitureId: null,
       seatIndex: null,
+      gridX: me.gridX,
+      gridY: me.gridY,
+    });
+  },
+
+  moveAvatar: (userId, gridX, gridY) => {
+    const { _channel, participants } = get();
+    const me = participants[userId];
+    if (!me || !_channel) return;
+    _channel.track({
+      userId: me.id,
+      displayName: me.displayName,
+      color: me.color,
+      seatFurnitureId: me.seatFurnitureId,
+      seatIndex: me.seatIndex,
+      gridX,
+      gridY,
     });
   },
 

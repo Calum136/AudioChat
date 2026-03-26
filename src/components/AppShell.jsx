@@ -7,6 +7,7 @@ import Room from './Room';
 import Palette from './Palette';
 import ParticipantPanel from './ParticipantPanel';
 import ThemePicker from './ThemePicker';
+import MusicPlayer from './MusicPlayer';
 
 export default function AppShell() {
   const user = useAuthStore((s) => s.user);
@@ -63,6 +64,7 @@ export default function AppShell() {
               <Icon name={isMuted ? 'micOff' : 'mic'} size={16} />
             </button>
           )}
+          <MusicPlayer />
           {isOwner && <ThemePicker />}
           {isOwner && (
             <button
