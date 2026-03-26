@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useRoomStore } from '../stores/roomStore';
 import AuthForm from './AuthForm';
-import Icon from './Icon';
 
 const THEME_ACCENTS = {
   'gaming-den': '#7c5cbf',
@@ -18,10 +17,19 @@ const THEME_LABELS = {
   'retro-arcade': 'Arcade',
 };
 
+const THEME_EMOJI = {
+  'gaming-den': '\u2694',
+  'scifi-lounge': '\u269B',
+  'fantasy-tavern': '\u2615',
+  'retro-arcade': '\u25B6',
+};
+
 function RoomCard({ room, onEnter, onDelete, index }) {
   const [confirming, setConfirming] = useState(false);
+  const [copied, setCopied] = useState(false);
   const accent = THEME_ACCENTS[room.theme] || THEME_ACCENTS['gaming-den'];
   const label = THEME_LABELS[room.theme] || 'Room';
+  const emoji = THEME_EMOJI[room.theme] || '\u2694';
 
   const handleDelete = (e) => {
     e.stopPropagation();
@@ -34,30 +42,40 @@ function RoomCard({ room, onEnter, onDelete, index }) {
     }
   };
 
+  const handleCopyCode = (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(room.join_code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
   return (
-    <div
-      className="room-card"
-      style={{ '--card-accent': accent, animationDelay: `${index * 80}ms` }}
+    <button
+      className="room-tile"
+      style={{ '--tile-accent': accent, animationDelay: `${index * 60}ms` }}
+      onClick={() => onEnter(room)}
     >
-      <div className="room-card-accent" />
-      <button className="room-card-main" onClick={() => onEnter(room)}>
-        <div className="room-card-body">
-          <span className="room-card-name">{room.name}</span>
-          <div className="room-card-meta">
-            <span className="room-card-theme">{label}</span>
-            <span className="room-card-code">{room.join_code}</span>
-          </div>
-        </div>
-        <Icon name="arrowRight" size={16} className="room-card-arrow" />
-      </button>
+      <div className="room-tile-theme-icon">{emoji}</div>
+      <span className="room-tile-name">{room.name}</span>
+      <div className="room-tile-footer">
+        <span className="room-tile-label">{label}</span>
+        <span
+          className={`room-tile-code ${copied ? 'copied' : ''}`}
+          onClick={handleCopyCode}
+          title="Click to copy code"
+        >
+          {copied ? 'Copied!' : room.join_code}
+        </span>
+      </div>
       <button
-        className={`room-card-delete ${confirming ? 'confirming' : ''}`}
+        className={`room-tile-delete ${confirming ? 'confirming' : ''}`}
         onClick={handleDelete}
         title={confirming ? 'Click again to confirm' : 'Delete room'}
       >
         {confirming ? '?' : '\u00D7'}
       </button>
-    </div>
+    </button>
   );
 }
 
@@ -76,6 +94,7 @@ export default function Landing() {
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState('create'); // 'create' | 'join'
 
   useEffect(() => {
     if (user) {
@@ -137,38 +156,20 @@ export default function Landing() {
         </div>
         <div className="landing-content">
           <div className="landing-hero fade-up">
-            <div className="landing-badge">Early Prototype</div>
             <h1 className="landing-title">Sidequest</h1>
             <p className="landing-tagline">
               The place your party hangs out between matches.
             </p>
           </div>
           <div className="fade-up" style={{ animationDelay: '100ms' }}>
-            <p className="landing-desc">
-              Sign in or create an account to start building your hangout room.
-            </p>
             <AuthForm />
-          </div>
-          <div className="landing-features fade-up" style={{ animationDelay: '400ms' }}>
-            <div className="feature">
-              <Icon name="furniture" size={28} className="feature-icon" />
-              <span>Furniture-based seating</span>
-            </div>
-            <div className="feature">
-              <Icon name="palette" size={28} className="feature-icon" />
-              <span>Customizable rooms</span>
-            </div>
-            <div className="feature">
-              <Icon name="users" size={28} className="feature-icon" />
-              <span>Voice chat</span>
-            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  // Authenticated: modular dashboard
+  // Authenticated: game-menu style dashboard
   return (
     <div className="landing">
       <div className="landing-bg">
@@ -177,65 +178,39 @@ export default function Landing() {
         <div className="aurora aurora-3" />
       </div>
       <div className="dashboard">
-        {/* Top bar */}
+        {/* Compact header */}
         <header className="dash-header fade-up">
-          <div className="dash-brand">
-            <h1 className="dash-title">Sidequest</h1>
-            <span className="landing-badge">Early Prototype</span>
-          </div>
+          <h1 className="dash-title">Sidequest</h1>
           <div className="dash-user">
-            <div className="user-avatar-lg" style={{ background: user.color }}>
-              {user.displayName[0]}
-            </div>
-            <strong>{user.displayName}</strong>
-            <button className="sign-out-btn" onClick={signOut}>Sign Out</button>
+            <div className="user-pip" style={{ background: user.color }} />
+            <span className="user-name">{user.displayName}</span>
+            <button className="sign-out-btn" onClick={signOut}>Log out</button>
           </div>
         </header>
 
-        {/* Main grid */}
-        <div className="dash-grid">
-          {/* Left column: rooms list */}
-          <section className="dash-panel dash-rooms fade-up" style={{ animationDelay: '100ms' }}>
-            <h3 className="section-heading">
-              <Icon name="furniture" size={16} />
-              Your Rooms
-            </h3>
-            {myRoomsLoading ? (
-              <div className="my-rooms-loading">
-                <div className="loading-spinner small" />
-                <span>Loading...</span>
-              </div>
-            ) : myRooms.length > 0 ? (
-              <div className="room-card-list">
-                {myRooms.map((room, i) => (
-                  <RoomCard
-                    key={room.id}
-                    room={room}
-                    index={i}
-                    onEnter={handleRejoin}
-                    onDelete={handleDelete}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="dash-empty">
-                <p>No rooms yet. Create one to get started!</p>
-              </div>
-            )}
-          </section>
-
-          {/* Right column: actions */}
-          <div className="dash-actions">
-            <section className="dash-panel dash-create fade-up" style={{ animationDelay: '200ms' }}>
-              <h3 className="section-heading">
-                <Icon name="palette" size={16} />
-                Create a Room
-              </h3>
+        {/* Quick actions bar */}
+        <div className="quick-bar fade-up" style={{ animationDelay: '80ms' }}>
+          <div className="quick-tabs">
+            <button
+              className={`quick-tab ${mode === 'create' ? 'active' : ''}`}
+              onClick={() => setMode('create')}
+            >
+              + New Room
+            </button>
+            <button
+              className={`quick-tab ${mode === 'join' ? 'active' : ''}`}
+              onClick={() => setMode('join')}
+            >
+              Join Room
+            </button>
+          </div>
+          <div className="quick-action">
+            {mode === 'create' ? (
               <div className="action-row">
                 <input
                   type="text"
-                  className="auth-input"
-                  placeholder="Room name..."
+                  className="quick-input"
+                  placeholder="Name your room..."
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
                   maxLength={30}
@@ -249,17 +224,11 @@ export default function Landing() {
                   {busy ? <div className="loading-spinner tiny" /> : 'Create'}
                 </button>
               </div>
-            </section>
-
-            <section className="dash-panel dash-join fade-up" style={{ animationDelay: '300ms' }}>
-              <h3 className="section-heading">
-                <Icon name="users" size={16} />
-                Join a Room
-              </h3>
+            ) : (
               <div className="action-row">
                 <input
                   type="text"
-                  className="auth-input join-code-input"
+                  className="quick-input join-code-input"
                   placeholder="Enter code..."
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value)}
@@ -274,28 +243,38 @@ export default function Landing() {
                   {busy ? <div className="loading-spinner tiny" /> : 'Join'}
                 </button>
               </div>
-            </section>
-
-            <section className="dash-panel dash-info fade-up" style={{ animationDelay: '400ms' }}>
-              <div className="dash-info-grid">
-                <div className="info-stat">
-                  <Icon name="furniture" size={20} className="feature-icon" />
-                  <span className="info-label">Furniture-based seating</span>
-                </div>
-                <div className="info-stat">
-                  <Icon name="palette" size={20} className="feature-icon" />
-                  <span className="info-label">Customizable rooms</span>
-                </div>
-                <div className="info-stat">
-                  <Icon name="users" size={20} className="feature-icon" />
-                  <span className="info-label">Voice chat</span>
-                </div>
-              </div>
-            </section>
+            )}
           </div>
         </div>
 
-        {error && <div className="auth-error fade-up">{error}</div>}
+        {error && <div className="dash-error fade-up">{error}</div>}
+
+        {/* Rooms grid */}
+        <div className="rooms-section fade-up" style={{ animationDelay: '160ms' }}>
+          {myRoomsLoading ? (
+            <div className="rooms-loading">
+              <div className="loading-spinner small" />
+            </div>
+          ) : myRooms.length > 0 ? (
+            <div className="room-grid">
+              {myRooms.map((room, i) => (
+                <RoomCard
+                  key={room.id}
+                  room={room}
+                  index={i}
+                  onEnter={handleRejoin}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rooms-empty fade-up">
+              <div className="empty-icon">~</div>
+              <p>No rooms yet</p>
+              <span>Create a room above to get started</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

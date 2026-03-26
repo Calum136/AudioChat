@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo, useCallback } from 'react';
+import { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import { useRoomStore } from '../stores/roomStore';
 import { THEMES } from '../data/themes';
 import { FURNITURE_CATALOG } from '../data/furniture';
@@ -27,6 +27,24 @@ export default function Room() {
   const roomRef = useRef(null);
   const themeData = THEMES[theme];
   const [zoom, setZoom] = useState(1);
+
+  // Auto-fit zoom: scale room to fit the viewport on mount and resize
+  useEffect(() => {
+    const calcFitZoom = () => {
+      const container = roomRef.current;
+      if (!container) return;
+      const totalW = (ROOM_GRID_W + ROOM_GRID_H) * (TILE_W / 2);
+      const totalH = (ROOM_GRID_W + ROOM_GRID_H) * (TILE_H / 2) + TILE_H + WALL_H;
+      const pad = 40; // breathing room
+      const fitW = (container.clientWidth - pad) / totalW;
+      const fitH = (container.clientHeight - pad) / totalH;
+      const fit = Math.min(fitW, fitH, 2);
+      setZoom(Math.max(0.4, Math.round(fit * 20) / 20)); // snap to 0.05 increments
+    };
+    calcFitZoom();
+    window.addEventListener('resize', calcFitZoom);
+    return () => window.removeEventListener('resize', calcFitZoom);
+  }, []);
 
   // Zoom handler (mouse wheel)
   const handleWheel = useCallback((e) => {

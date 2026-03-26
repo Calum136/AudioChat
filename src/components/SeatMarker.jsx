@@ -33,7 +33,8 @@ export default function SeatMarker({ furnitureId, seatIndex, seat }) {
   const avatarW = sittingAvatar.grid[0].length * AVATAR_SCALE;
   const avatarH = sittingAvatar.grid.length * AVATAR_SCALE;
 
-  const handleClick = () => {
+  const handleClick = (e) => {
+    e.stopPropagation(); // Prevent Room's click handler from firing moveAvatar
     if (isEditing || !user) return;
     if (iAmHere) {
       standUp(user.id);
