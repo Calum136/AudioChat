@@ -83,11 +83,12 @@ export async function deleteRoom(roomId) {
     .delete()
     .eq('room_id', roomId);
   if (furErr) throw furErr;
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from('rooms')
-    .delete()
+    .delete({ count: 'exact' })
     .eq('id', roomId);
   if (error) throw error;
+  if (count === 0) throw new Error('Could not delete room. You may not be the owner.');
 }
 
 export async function saveFurnitureRemove(furnitureId) {
