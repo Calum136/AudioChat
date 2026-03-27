@@ -8,6 +8,8 @@ import Icon from './Icon';
 export default function FriendsPanel() {
   const user = useAuthStore((s) => s.user);
   const roomId = useRoomStore((s) => s.roomId);
+  const sendKnock = useRoomStore((s) => s.sendKnock);
+  const [knockedIds, setKnockedIds] = useState(new Set()); // track who we've knocked
   const friends = useFriendStore((s) => s.friends);
   const pendingRequests = useFriendStore((s) => s.pendingRequests);
   const blockedUsers = useFriendStore((s) => s.blockedUsers);
@@ -202,6 +204,22 @@ export default function FriendsPanel() {
                       </span>
                       <span className="friend-status">{statusLabel(status)}</span>
                     </div>
+                    {status === 'in-other-room' && onlineUsers[f.id]?.roomId && (
+                      <button
+                        className={`friend-action-btn knock ${knockedIds.has(f.id) ? 'knocked' : ''}`}
+                        onClick={() => {
+                          const targetRoom = onlineUsers[f.id]?.roomId;
+                          if (targetRoom && user) {
+                            sendKnock(targetRoom, user);
+                            setKnockedIds((s) => new Set([...s, f.id]));
+                          }
+                        }}
+                        disabled={knockedIds.has(f.id)}
+                        title={knockedIds.has(f.id) ? 'Knock sent!' : 'Knock to request entry'}
+                      >
+                        {knockedIds.has(f.id) ? 'Sent' : 'Knock'}
+                      </button>
+                    )}
                     <button
                       className="friend-menu-btn"
                       onClick={(e) => {

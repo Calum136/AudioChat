@@ -19,6 +19,8 @@ export default function AppShell() {
   const leaveRoom = useRoomStore((s) => s.leaveRoom);
   const participants = useRoomStore((s) => s.participants);
 
+  const knockRequests = useRoomStore((s) => s.knockRequests);
+  const dismissKnock = useRoomStore((s) => s.dismissKnock);
   const connectionState = useVoiceStore((s) => s.connectionState);
   const isMuted = useVoiceStore((s) => s.isMuted);
   const toggleMute = useVoiceStore((s) => s.toggleMute);
@@ -80,6 +82,19 @@ export default function AppShell() {
           )}
         </div>
       </header>
+      {/* Knock notifications */}
+      {knockRequests.length > 0 && (
+        <div className="knock-bar">
+          {knockRequests.map((k) => (
+            <div key={k.userId} className="knock-toast">
+              <div className="knock-avatar" style={{ background: k.color }}>{k.displayName[0]}</div>
+              <span className="knock-text"><strong>{k.displayName}</strong> is knocking to join</span>
+              <span className="knock-code">Share code: <strong>{joinCode}</strong></span>
+              <button className="knock-dismiss" onClick={() => dismissKnock(k.userId)}>&times;</button>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="app-body">
         {isOwner && <Palette />}
         <Room />

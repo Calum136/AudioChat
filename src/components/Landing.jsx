@@ -75,7 +75,10 @@ function RoomCard({ room, onEnter, onRequestDelete, index }) {
 function QuestLogo({ size = 'large' }) {
   return (
     <div className={`quest-logo ${size}`}>
-      <span className="quest-bang">!</span>
+      <div className="quest-teardrop">
+        <span className="quest-bang">!</span>
+      </div>
+      <div className="quest-dot" />
     </div>
   );
 }

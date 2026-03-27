@@ -12,6 +12,7 @@ export function createRoomChannel(roomId, callbacks) {
     onFurnitureRemove,
     onFurnitureFlip,
     onThemeChange,
+    onKnock,
   } = callbacks;
 
   const channel = supabase.channel(`room:${roomId}`);
@@ -42,6 +43,12 @@ export function createRoomChannel(roomId, callbacks) {
   channel.on('broadcast', { event: 'room:theme' }, ({ payload }) => {
     onThemeChange(payload);
   });
+
+  if (onKnock) {
+    channel.on('broadcast', { event: 'room:knock' }, ({ payload }) => {
+      onKnock(payload);
+    });
+  }
 
   return channel;
 }

@@ -3,6 +3,8 @@ import { FURNITURE_CATALOG } from '../data/furniture';
 import { createRoomChannel } from '../lib/roomChannel';
 import * as roomService from '../lib/roomService';
 import { useAuthStore } from './authStore';
+import { supabase } from '../lib/supabase';
+import { playJoinSound, playLeaveSound, playKnockSound } from '../lib/sounds';
 
 export const useRoomStore = create((set, get) => ({
   // View routing: 'landing' | 'room'
@@ -36,6 +38,9 @@ export const useRoomStore = create((set, get) => ({
 
   // Realtime channel
   _channel: null,
+
+  // Knock requests (friend wants to join)
+  knockRequests: [], // [{ userId, displayName, color, timestamp }]
 
   // ======== Room Lifecycle ========
 
@@ -89,6 +94,7 @@ export const useRoomStore = create((set, get) => ({
       isEditing: false,
       _channel: null,
       myRooms: [],
+      knockRequests: [],
     });
   },
 
@@ -109,6 +115,7 @@ export const useRoomStore = create((set, get) => ({
     // Set up Realtime channel
     const channel = createRoomChannel(room.id, {
       onPresenceSync: (state) => {
+        const oldParticipants = get().participants;
         const participants = {};
         for (const [_key, presences] of Object.entries(state)) {
           for (const p of presences) {
@@ -122,6 +129,16 @@ export const useRoomStore = create((set, get) => ({
               gridY: p.gridY ?? null,
             };
           }
+        }
+        // Play sounds for joins/leaves (skip self)
+        const myId = user.id;
+        const oldIds = new Set(Object.keys(oldParticipants));
+        const newIds = new Set(Object.keys(participants));
+        for (const id of newIds) {
+          if (id !== myId && !oldIds.has(id)) playJoinSound();
+        }
+        for (const id of oldIds) {
+          if (id !== myId && !newIds.has(id)) playLeaveSound();
         }
         set({ participants });
       },
@@ -152,27 +169,52 @@ export const useRoomStore = create((set, get) => ({
       onThemeChange: (payload) => {
         set({ theme: payload.theme });
       },
+      onKnock: (payload) => {
+        // Someone is knocking to join — play sound and add to list
+        playKnockSound();
+        set((s) => ({
+          knockRequests: [
+            ...s.knockRequests.filter((k) => k.userId !== payload.userId),
+            { userId: payload.userId, displayName: payload.displayName, color: payload.color, timestamp: Date.now() },
+          ],
+        }));
+      },
     });
 
-    // Subscribe and track presence
-    // Pick a spawn position (center-ish of room, offset by user hash to avoid overlap)
+    // Subscribe and track presence (with timeout to handle stale connections)
     const hash = parseInt((user.id || '').replace(/\D/g, '').slice(0, 4) || '0', 10);
     const spawnX = 3 + (hash % 3);
     const spawnY = 3 + (Math.floor(hash / 3) % 3);
 
-    await channel.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        await channel.track({
-          userId: user.id,
-          displayName: user.displayName,
-          color: user.color,
-          seatFurnitureId: null,
-          seatIndex: null,
-          gridX: spawnX,
-          gridY: spawnY,
-        });
-      }
+    const subscribeWithTimeout = () => new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Connection timed out. Please try again.')), 8000);
+      channel.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          clearTimeout(timeout);
+          await channel.track({
+            userId: user.id,
+            displayName: user.displayName,
+            color: user.color,
+            seatFurnitureId: null,
+            seatIndex: null,
+            gridX: spawnX,
+            gridY: spawnY,
+          });
+          resolve();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          clearTimeout(timeout);
+          reject(new Error('Failed to connect. Please try again.'));
+        }
+      });
     });
+
+    try {
+      await subscribeWithTimeout();
+    } catch (e) {
+      // Clean up failed channel
+      channel.unsubscribe();
+      throw e;
+    }
 
     set({
       view: 'room',
@@ -305,4 +347,25 @@ export const useRoomStore = create((set, get) => ({
   },
 
   setRoomName: (roomName) => set({ roomName }),
+
+  // ======== Knock requests ========
+
+  dismissKnock: (userId) => {
+    set((s) => ({
+      knockRequests: s.knockRequests.filter((k) => k.userId !== userId),
+    }));
+  },
+
+  /** Send a knock to a room (called from friends panel, targeting a specific room channel) */
+  sendKnock: async (targetRoomId, user) => {
+    const channel = supabase.channel(`room:${targetRoomId}`);
+    await channel.subscribe();
+    channel.send({
+      type: 'broadcast',
+      event: 'room:knock',
+      payload: { userId: user.id, displayName: user.displayName, color: user.color },
+    });
+    // Clean up temp channel after a moment
+    setTimeout(() => channel.unsubscribe(), 2000);
+  },
 }));

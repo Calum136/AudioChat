@@ -181,16 +181,6 @@ export default function FurnitureItem({ id, type, gridX, gridY, flipped, originX
       {isEditing && (
         <div className="furniture-edit-controls">
           <button
-            className="furniture-flip"
-            onClick={(e) => {
-              e.stopPropagation();
-              flipFurniture(id);
-            }}
-            title="Flip"
-          >
-            ↔
-          </button>
-          <button
             className="furniture-remove"
             onClick={(e) => {
               e.stopPropagation();
