@@ -150,8 +150,8 @@ export default function Room() {
     const floorEl = roomRef.current?.querySelector('.iso-floor');
     if (!floorEl) return false;
     const rect = floorEl.getBoundingClientRect();
-    const sx = screenX - rect.left;
-    const sy = screenY - rect.top;
+    const sx = (screenX - rect.left) / zoom;
+    const sy = (screenY - rect.top) / zoom;
 
     const raw = screenToIso(sx, sy, originX, originY);
     const { gx, gy } = snapToGrid(raw.gx, raw.gy);
@@ -168,7 +168,7 @@ export default function Room() {
 
     addFurniture(type, gx, gy);
     return true;
-  }, [addFurniture, originX, originY, occupiedCells]);
+  }, [addFurniture, originX, originY, occupiedCells, zoom]);
 
   // Drop handler: convert screen coords to grid coords
   const handleDragOver = useCallback((e) => {
@@ -199,15 +199,15 @@ export default function Room() {
       const floorEl = roomRef.current?.querySelector('.iso-floor');
       if (!floorEl) return;
       const rect = floorEl.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
+      const sx = (e.clientX - rect.left) / zoom;
+      const sy = (e.clientY - rect.top) / zoom;
       const raw = screenToIso(sx, sy, originX, originY);
       const { gx, gy } = snapToGrid(raw.gx, raw.gy);
       if (isInBounds(gx, gy, ROOM_GRID_W, ROOM_GRID_H)) {
         moveAvatar(user.id, gx, gy);
       }
     }
-  }, [isEditing, selectedType, placeFurnitureAt, setSelectedType, user, moveAvatar, originX, originY]);
+  }, [isEditing, selectedType, placeFurnitureAt, setSelectedType, user, moveAvatar, originX, originY, zoom]);
 
   // Sort furniture by depth for correct overlapping
   const sortedFurniture = useMemo(() => {
@@ -384,6 +384,7 @@ export default function Room() {
               flipped={item.flipped}
               originX={originX}
               originY={originY}
+              zoom={zoom}
             />
           ))}
 

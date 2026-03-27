@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useRoomStore } from '../stores/roomStore';
 import { useVoiceStore } from '../stores/voiceStore';
-import { sittingAvatar, getAvatarPalette } from '../data/sprites/avatarSprites';
+import { sittingAvatar, standingAvatar, getAvatarPalette } from '../data/sprites/avatarSprites';
 import { renderPixelGrid } from '../lib/spriteRenderer';
 
 const AVATAR_SCALE = 3;
@@ -15,6 +15,8 @@ export default function SeatMarker({ furnitureId, seatIndex, seat }) {
   const standUp = useRoomStore((s) => s.standUp);
   const speakingMap = useVoiceStore((s) => s.speakingMap);
 
+  const isStandingSpot = seat.type === 'stand';
+
   // Find the occupant of this seat
   const occupant = Object.values(participants).find(
     (p) => p.seatFurnitureId === furnitureId && p.seatIndex === seatIndex
@@ -23,15 +25,16 @@ export default function SeatMarker({ furnitureId, seatIndex, seat }) {
   const myParticipant = user ? participants[user.id] : null;
   const isSpeaking = occupant && speakingMap[occupant.id];
 
-  // Render pixel avatar for occupant
+  // Render pixel avatar for occupant (standing or sitting based on spot type)
+  const avatarTemplate = isStandingSpot ? standingAvatar : sittingAvatar;
   const avatarUrl = useMemo(() => {
     if (!occupant) return null;
     const palette = getAvatarPalette(occupant.color || '#5577bb');
-    return renderPixelGrid(sittingAvatar.grid, palette, AVATAR_SCALE);
-  }, [occupant]);
+    return renderPixelGrid(avatarTemplate.grid, palette, AVATAR_SCALE);
+  }, [occupant, avatarTemplate]);
 
-  const avatarW = sittingAvatar.grid[0].length * AVATAR_SCALE;
-  const avatarH = sittingAvatar.grid.length * AVATAR_SCALE;
+  const avatarW = avatarTemplate.grid[0].length * AVATAR_SCALE;
+  const avatarH = avatarTemplate.grid.length * AVATAR_SCALE;
 
   const handleClick = (e) => {
     e.stopPropagation(); // Prevent Room's click handler from firing moveAvatar
@@ -46,7 +49,7 @@ export default function SeatMarker({ furnitureId, seatIndex, seat }) {
 
   return (
     <div
-      className={`seat-marker ${occupant ? 'occupied' : 'available'} ${iAmHere ? 'is-me' : ''} ${isEditing ? 'editing' : ''}`}
+      className={`seat-marker ${occupant ? 'occupied' : 'available'} ${iAmHere ? 'is-me' : ''} ${isEditing ? 'editing' : ''} ${isStandingSpot ? 'standing-spot' : ''}`}
       style={{
         position: 'absolute',
         left: '50%',
@@ -56,7 +59,7 @@ export default function SeatMarker({ furnitureId, seatIndex, seat }) {
         transform: 'translate(-50%, -50%)',
       }}
       onClick={handleClick}
-      title={occupant ? `${occupant.displayName} is here` : `${seat.label} (click to sit)`}
+      title={occupant ? `${occupant.displayName} is here` : seat.label || (isStandingSpot ? 'Stand here' : 'Click to sit')}
     >
       {occupant ? (
         <div className={`seat-avatar-pixel ${isSpeaking ? 'speaking' : ''} ${iAmHere ? 'is-me' : ''}`}>
@@ -70,7 +73,7 @@ export default function SeatMarker({ furnitureId, seatIndex, seat }) {
           {isSpeaking && <div className="speaking-waves" />}
         </div>
       ) : (
-        <div className="seat-dot" />
+        <div className={`seat-dot ${isStandingSpot ? 'stand-dot' : ''}`} />
       )}
     </div>
   );

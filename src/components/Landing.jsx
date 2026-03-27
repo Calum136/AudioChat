@@ -72,6 +72,14 @@ function RoomCard({ room, onEnter, onRequestDelete, index }) {
   );
 }
 
+function QuestLogo({ size = 'large' }) {
+  return (
+    <div className={`quest-logo ${size}`}>
+      <span className="quest-bang">!</span>
+    </div>
+  );
+}
+
 export default function Landing() {
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
@@ -141,7 +149,7 @@ export default function Landing() {
     setDeleteTarget(null);
   };
 
-  // Unauthenticated: hero + auth form
+  // Unauthenticated: splash + auth form
   if (!user) {
     return (
       <div className="landing">
@@ -152,7 +160,8 @@ export default function Landing() {
         </div>
         <div className="landing-content">
           <div className="landing-hero fade-up">
-            <h1 className="landing-title">Sidequest</h1>
+            <QuestLogo size="hero" />
+            <h1 className="landing-title splash-title">Sidequest</h1>
             <p className="landing-tagline">
               The place your party hangs out between matches.
             </p>
@@ -165,7 +174,7 @@ export default function Landing() {
     );
   }
 
-  // Authenticated: dashboard with friends sidebar
+  // Authenticated: dashboard
   return (
     <div className="landing">
       <div className="landing-bg">
@@ -175,9 +184,12 @@ export default function Landing() {
       </div>
       <div className="dash-layout">
         <div className="dashboard">
-          {/* Compact header */}
+          {/* Brand header with quest logo */}
           <header className="dash-header fade-up">
-            <h1 className="dash-title">Sidequest</h1>
+            <div className="dash-brand">
+              <QuestLogo size="small" />
+              <h1 className="dash-title">Sidequest</h1>
+            </div>
             <div className="dash-user">
               <div className="user-pip" style={{ background: user.color }} />
               <span className="user-name">{user.displayName}</span>
@@ -266,9 +278,9 @@ export default function Landing() {
               </div>
             ) : (
               <div className="rooms-empty fade-up">
-                <div className="empty-icon">~</div>
+                <QuestLogo size="medium" />
                 <p>No rooms yet</p>
-                <span>Create a room above to get started</span>
+                <span>Create a room to start your sidequest</span>
               </div>
             )}
           </div>

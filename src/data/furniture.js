@@ -84,7 +84,10 @@ export const FURNITURE_CATALOG = {
     tileW: 1,
     tileH: 1,
     category: 'decor',
-    seats: [],
+    seats: [
+      { offsetX: -20, offsetY: 20, label: 'Stand at table', type: 'stand' },
+      { offsetX: 20, offsetY: 20, label: 'Stand at table', type: 'stand' },
+    ],
   },
   shelf: {
     name: 'Shelf',
@@ -121,7 +124,9 @@ export const FURNITURE_CATALOG = {
     tileW: 1,
     tileH: 1,
     category: 'decor',
-    seats: [],
+    seats: [
+      { offsetX: 0, offsetY: 30, label: 'Play arcade', type: 'stand' },
+    ],
     light: { radius: 2, color: 'rgba(42, 85, 140, 0.10)' },
   },
   jukebox: {
@@ -131,7 +136,9 @@ export const FURNITURE_CATALOG = {
     tileW: 1,
     tileH: 1,
     category: 'decor',
-    seats: [],
+    seats: [
+      { offsetX: 18, offsetY: 25, label: 'Browse music', type: 'stand' },
+    ],
     light: { radius: 2, color: 'rgba(204, 85, 85, 0.10)' },
   },
   tv: {
@@ -141,7 +148,9 @@ export const FURNITURE_CATALOG = {
     tileW: 1,
     tileH: 1,
     category: 'decor',
-    seats: [],
+    seats: [
+      { offsetX: 0, offsetY: 35, label: 'Watch TV', type: 'stand' },
+    ],
     light: { radius: 2, color: 'rgba(42, 85, 140, 0.12)' },
   },
   plant: {

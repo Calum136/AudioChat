@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { FURNITURE_CATALOG } from '../data/furniture';
 import { createRoomChannel } from '../lib/roomChannel';
 import * as roomService from '../lib/roomService';
+import { useAuthStore } from './authStore';
 
 export const useRoomStore = create((set, get) => ({
   // View routing: 'landing' | 'room'
@@ -236,9 +237,22 @@ export const useRoomStore = create((set, get) => ({
 
   // ======== Seating (updates Presence, not DB) ========
 
-  sitDown: (userId, furnitureId, seatIndex) => {
-    const { _channel, participants } = get();
+  // Helper to get current user's presence data with auth fallback
+  _getMe: (userId) => {
+    const { participants } = get();
     const me = participants[userId];
+    if (me) return me;
+    // Fallback: user joined room but presence hasn't synced yet
+    const authUser = useAuthStore.getState().user;
+    if (authUser && authUser.id === userId) {
+      return { id: authUser.id, displayName: authUser.displayName, color: authUser.color, gridX: 4, gridY: 4, seatFurnitureId: null, seatIndex: null };
+    }
+    return null;
+  },
+
+  sitDown: (userId, furnitureId, seatIndex) => {
+    const { _channel } = get();
+    const me = get()._getMe(userId);
     if (!me || !_channel) return;
     _channel.track({
       userId: me.id,
@@ -252,8 +266,8 @@ export const useRoomStore = create((set, get) => ({
   },
 
   standUp: (userId) => {
-    const { _channel, participants } = get();
-    const me = participants[userId];
+    const { _channel } = get();
+    const me = get()._getMe(userId);
     if (!me || !_channel) return;
     _channel.track({
       userId: me.id,
@@ -267,8 +281,8 @@ export const useRoomStore = create((set, get) => ({
   },
 
   moveAvatar: (userId, gridX, gridY) => {
-    const { _channel, participants } = get();
-    const me = participants[userId];
+    const { _channel } = get();
+    const me = get()._getMe(userId);
     if (!me || !_channel) return;
     _channel.track({
       userId: me.id,

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useFriendStore } from '../stores/friendStore';
 import { useRoomStore } from '../stores/roomStore';
@@ -25,6 +25,15 @@ export default function FriendsPanel() {
   const blockUser = useFriendStore((s) => s.blockUser);
   const unblockUser = useFriendStore((s) => s.unblockUser);
   const toggleMute = useFriendStore((s) => s.toggleMute);
+  const loadFriends = useFriendStore((s) => s.loadFriends);
+
+  // Auto-refresh friends data on mount and every 15 seconds
+  useEffect(() => {
+    if (!user) return;
+    loadFriends(user.id);
+    const interval = setInterval(() => loadFriends(user.id), 15000);
+    return () => clearInterval(interval);
+  }, [user, loadFriends]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMenu, setActiveMenu] = useState(null); // friendId
