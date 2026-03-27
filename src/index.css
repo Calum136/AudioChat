@@ -258,6 +258,56 @@ body {
   animation: auroraShift3 28s ease-in-out infinite;
 }
 
+/* Subtle floating particles — quest fireflies */
+.landing-bg::before,
+.landing-bg::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.landing-bg::before {
+  width: 3px;
+  height: 3px;
+  top: 25%;
+  left: 18%;
+  background: rgba(255, 200, 0, 0.5);
+  box-shadow:
+    40vw 15vh 0 1px rgba(255, 200, 0, 0.3),
+    75vw 8vh 0 0.5px rgba(255, 200, 0, 0.25),
+    20vw 65vh 0 1px rgba(255, 184, 0, 0.2),
+    60vw 55vh 0 0.5px rgba(255, 200, 0, 0.35),
+    85vw 40vh 0 1px rgba(255, 184, 0, 0.15),
+    10vw 80vh 0 0.5px rgba(255, 200, 0, 0.2),
+    50vw 85vh 0 1px rgba(255, 200, 0, 0.25),
+    30vw 35vh 0 0.5px rgba(255, 184, 0, 0.2);
+  animation: fireflies 12s ease-in-out infinite alternate;
+}
+
+.landing-bg::after {
+  width: 2px;
+  height: 2px;
+  top: 60%;
+  right: 25%;
+  background: rgba(255, 180, 0, 0.4);
+  box-shadow:
+    -30vw -20vh 0 0.5px rgba(255, 200, 0, 0.2),
+    -65vw 10vh 0 1px rgba(255, 184, 0, 0.25),
+    -15vw -40vh 0 0.5px rgba(255, 200, 0, 0.3),
+    -50vw 30vh 0 1px rgba(255, 184, 0, 0.15),
+    -80vw -10vh 0 0.5px rgba(255, 200, 0, 0.2),
+    15vw 20vh 0 1px rgba(255, 184, 0, 0.2);
+  animation: fireflies 16s ease-in-out 3s infinite alternate;
+}
+
+@keyframes fireflies {
+  0% { transform: translate(0, 0); opacity: 0.6; }
+  33% { opacity: 1; }
+  66% { opacity: 0.4; }
+  100% { transform: translate(15px, -20px); opacity: 0.8; }
+}
+
 .landing-content {
   position: relative;
   text-align: center;
@@ -293,7 +343,6 @@ body {
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
-  filter: drop-shadow(0 0 12px rgba(255, 200, 0, 0.6)) drop-shadow(0 0 32px rgba(255, 160, 0, 0.3));
   animation: questFloat 3s ease-in-out infinite;
 }
 
@@ -306,8 +355,9 @@ body {
   box-shadow:
     inset 0 -4px 12px rgba(180, 80, 0, 0.4),
     inset 0 4px 8px rgba(255, 255, 200, 0.3),
-    0 0 20px rgba(255, 180, 0, 0.5),
-    0 0 40px rgba(255, 140, 0, 0.25);
+    0 0 16px rgba(255, 180, 0, 0.6),
+    0 0 40px rgba(255, 140, 0, 0.3),
+    0 0 80px rgba(255, 140, 0, 0.15);
   position: relative;
   overflow: hidden;
 }
@@ -457,7 +507,7 @@ body {
 .dashboard {
   position: relative;
   width: 100%;
-  max-width: 520px;
+  max-width: none;
   padding: 2rem 1.5rem;
   display: flex;
   flex-direction: column;
@@ -2017,20 +2067,21 @@ body {
 .dash-layout {
   position: relative;
   display: flex;
-  gap: 1rem;
-  max-width: 760px;
+  gap: 1.5rem;
+  max-width: 960px;
   width: 100%;
   max-height: 100vh;
-  padding: 0 1rem;
+  padding: 0 2rem;
 }
 
 .dash-layout .dashboard {
   flex: 1;
   min-width: 0;
+  max-width: none;
 }
 
 .dash-friends {
-  width: 220px;
+  width: 240px;
   flex-shrink: 0;
   padding: 2rem 0;
 }

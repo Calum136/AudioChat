@@ -29,11 +29,11 @@ export default function FriendsPanel() {
   const toggleMute = useFriendStore((s) => s.toggleMute);
   const loadFriends = useFriendStore((s) => s.loadFriends);
 
-  // Auto-refresh friends data on mount and every 15 seconds
+  // Auto-refresh friends data on mount and every 15 seconds (silent refresh to avoid flicker)
   useEffect(() => {
     if (!user) return;
     loadFriends(user.id);
-    const interval = setInterval(() => loadFriends(user.id), 15000);
+    const interval = setInterval(() => loadFriends(user.id, true), 15000);
     return () => clearInterval(interval);
   }, [user, loadFriends]);
 

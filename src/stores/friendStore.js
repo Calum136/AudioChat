@@ -16,8 +16,8 @@ export const useFriendStore = create((set, get) => ({
 
   // ======== Load all friend data ========
 
-  loadFriends: async (userId) => {
-    set({ loading: true });
+  loadFriends: async (userId, silent = false) => {
+    if (!silent) set({ loading: true });
     try {
       const [friends, pending, blocked] = await Promise.all([
         friendService.getFriends(userId),
@@ -27,7 +27,7 @@ export const useFriendStore = create((set, get) => ({
       set({ friends, pendingRequests: pending, blockedUsers: blocked, loading: false });
     } catch (e) {
       console.error('[friends] Failed to load:', e);
-      set({ loading: false });
+      if (!silent) set({ loading: false });
     }
   },
 
