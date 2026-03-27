@@ -673,8 +673,8 @@ body {
 
 .room-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
 }
 
 .room-tile {
@@ -2069,14 +2069,9 @@ body {
   display: flex;
   gap: 1.5rem;
   width: 100%;
+  max-width: 1200px;
   max-height: 100vh;
-  padding: 0 3rem;
-  align-self: stretch;
-}
-
-.landing:has(.dash-layout) {
-  align-items: stretch;
-  justify-content: flex-start;
+  padding: 0 2rem;
 }
 
 .dash-layout .dashboard {
