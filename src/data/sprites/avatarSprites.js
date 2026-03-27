@@ -35,9 +35,9 @@ export const sittingAvatar = {
     '..144444444441..', //  2: hair sides wide
     '..144444444441..', //  3: hair volume
     '..144222224441..', //  4: forehead, hair on sides
-    '.1142272272141..', //  5: eyes (7) in skin, hair sides
-    '.1222272272221..', //  6: mid-face, eyes, skin
-    '..12222232221...', //  7: lower face, mouth dot (3)
+    '.1142772772141..', //  5: eyebrows (7) above eyes
+    '.1222272272221..', //  6: eyes (7) in skin
+    '..12223322221...', //  7: lower face, nose/mouth (3)
     '...1222222221...', //  8: chin
     '.....12221......', //  9: neck (skin)
     '....1155511.....', // 10: shoulders (shirt)
@@ -75,8 +75,8 @@ export const standingAvatar = {
     '..14444441..', //  1: hair fill
     '.1444444441.', //  2: hair wide
     '.1442222441.', //  3: forehead + hair sides
-    '.1222722721.', //  4: eyes (7) on skin
-    '.1222232221.', //  5: mouth (3) on skin
+    '.1227722721.', //  4: eyebrows (7) above eyes
+    '.1222232221.', //  5: nose/mouth (3) on skin
     '..12222221..', //  6: chin
     '...112211...', //  7: neck
     '...155551...', //  8: shirt shoulders
