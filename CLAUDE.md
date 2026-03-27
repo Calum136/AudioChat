@@ -51,6 +51,11 @@ Cozy multiplayer rooms with voice chat. Users build custom rooms, drag in furnit
 - `src/data/sprites/avatarSprites.js` — Pixel avatar templates + palette swap system
 - `src/lib/spriteRenderer.js` — Pixel grid → canvas data URL renderer (with cache)
 - `src/lib/isoGrid.js` — Isometric math (isoToScreen, screenToIso, depth sorting)
+- `src/stores/friendStore.js` — Friends state (friend list, presence, search, mute)
+- `src/lib/friendService.js` — DB query wrappers for friendships table
+- `src/components/FriendsPanel.jsx` — Friends list UI (search, add, block, mute, status)
+- `src/components/SocialPanel.jsx` — Tab wrapper (Room + Friends) for in-room sidebar
+- `src/components/ConfirmDialog.jsx` — Reusable confirmation modal
 - `server/server.js` — Express server (LiveKit token endpoint)
 - `supabase/migrations/` — SQL schema + trigger migrations
 - `docs/product-brief.md` — Full product vision and feature spec
@@ -71,6 +76,11 @@ Cozy multiplayer rooms with voice chat. Users build custom rooms, drag in furnit
 - [x] ~~Click-to-copy join codes~~ — join codes in room cards now copy to clipboard on click
 - [x] ~~Auto-zoom room to fit viewport~~ — room auto-scales based on browser window size
 - [x] ~~Dashboard vibe redesign~~ — game-menu style with tile grid, compact quick-bar, removed corporate cards/badges
+- [x] ~~Friends system~~ — full friends list with add/remove/block/mute, online presence, "in your room" indicator, search users
+- [x] ~~Delete confirmation dialog~~ — replaced confusing "?" with proper ConfirmDialog modal
+- [x] ~~Room deletion RLS~~ — migration 003 exists, needs to be applied via Supabase SQL Editor
+- [ ] PENDING: Apply migration 004_friendships.sql to Supabase (run SQL in dashboard)
+- [ ] PENDING: Apply migration 003_room_delete_policy.sql if not already applied
 - [ ] BUG: Furniture can be deleted in edit mode but cannot be added from palette
 - [ ] Email rate limiting causing issues — investigate custom SMTP or Supabase plan upgrade
 - [ ] Test isometric room with real multiplayer (sign in, create room, place furniture, verify grid)
@@ -97,3 +107,4 @@ Registered Sidequest in root CLAUDE.md and project-memory config. Created projec
 - **Mar 20, 2026:** Implemented pixel art + isometric grid system — the big visual overhaul from SVG line icons to Habbo Hotel-style pixel art. Created: spriteRenderer.js (pixel grid → canvas data URL with caching), isoGrid.js (2:1 isometric projection math), 11 furniture pixel sprites in isometric perspective, 4 themed floor tiles (gaming den, sci-fi, fantasy tavern, retro arcade), pixel avatar system with palette swaps for hair/shirt/skin customization. Updated Room.jsx to render 8x8 isometric diamond grid with depth-sorted furniture, FurnitureItem.jsx for sprite rendering + grid-based drag, SeatMarker.jsx for pixel avatar seated characters, Palette.jsx with sprite thumbnails. Furniture positions now use grid coordinates (0-7) instead of pixel coords, with backward-compat migration for existing DB data. All sprites verified rendering correctly via test page. Build compiles clean.
 - **Mar 20, 2026:** Deployed pixel art update to Netlify production. Fixed Netlify auto-deploy: added VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_LIVEKIT_URL env vars to Netlify dashboard (all public client-side keys, not secrets). Continuous deployment from GitHub now working. Isometric grid, furniture sprites, and room rendering verified working on production. Known bug: furniture can be deleted in edit mode but cannot be added from the palette.
 - **Mar 26, 2026:** Bug fixes from friend testing session. (1) Sitting feature fixed — SeatMarker click was bubbling to Room's click handler, which called moveAvatar with stale presence data (null seat), overwriting the sitDown. Added e.stopPropagation() to SeatMarker.handleClick. (2) Click-to-copy join codes — room cards now copy join code to clipboard on click with "Copied!" feedback. (3) Auto-zoom — room now auto-scales to fit the browser viewport on load and window resize, calculated from room pixel dimensions vs container size. (4) Dashboard redesign — replaced corporate card/badge layout with game-menu style: single-column layout, compact quick-bar with create/join tabs, tile grid for rooms with theme icons and accent glows, cleaner empty state. Removed feature badges and info panel. (5) Captured email rate limit issue to Open Brain — Supabase free tier rate limits causing problems, need to investigate custom SMTP or plan upgrade.
+- **Mar 26, 2026:** Friends system implemented. New DB table: friendships (pending/accepted/blocked status, blocked_by tracking). New files: friendService.js (CRUD wrappers), friendStore.js (Zustand — friends list, global presence via supabase.channel('presence:global'), search, mute), FriendsPanel.jsx (search users, add/accept/decline requests, online/offline status, "in your room" indicator, context menu with mute/block/remove), SocialPanel.jsx (tab wrapper — Room + Friends tabs for in-room sidebar), ConfirmDialog.jsx (reusable glassmorphic modal). Room deletion now uses proper ConfirmDialog instead of confusing "?" two-click pattern. Mute integrated into voiceStore — muted users get gain=0 in spatial audio pipeline. Friends panel appears as sidebar on landing dashboard and as "Friends" tab in room. 4 new SVG icons (userPlus, dots, search, block). Migration 004_friendships.sql created — needs to be applied to Supabase. Build compiles clean.

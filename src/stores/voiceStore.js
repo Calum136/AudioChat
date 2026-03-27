@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Room, RoomEvent, Track } from 'livekit-client';
+import { useFriendStore } from './friendStore';
 
 const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL;
 
@@ -171,9 +172,17 @@ export const useVoiceStore = create((set, get) => ({
     const sourceNodes = get()._sourceNodes;
     if (sourceNodes.size === 0) return;
 
+    const mutedUsers = useFriendStore.getState().mutedUsers;
+
     for (const [identity, pos] of Object.entries(participantPositions)) {
       const nodes = sourceNodes.get(identity);
       if (!nodes) continue;
+
+      // Muted users get zero gain
+      if (mutedUsers.has(identity)) {
+        nodes.gain.gain.value = 0;
+        continue;
+      }
 
       // Pan based on relative X position
       const pan = clamp((pos.x - myPos.x) / ROOM_WIDTH, -1, 1);

@@ -5,7 +5,7 @@ import { useVoiceConnection } from '../hooks/useVoiceConnection';
 import Icon from './Icon';
 import Room from './Room';
 import Palette from './Palette';
-import ParticipantPanel from './ParticipantPanel';
+import SocialPanel from './SocialPanel';
 import ThemePicker from './ThemePicker';
 import MusicPlayer from './MusicPlayer';
 
@@ -83,7 +83,7 @@ export default function AppShell() {
       <div className="app-body">
         {isOwner && <Palette />}
         <Room />
-        <ParticipantPanel />
+        <SocialPanel />
       </div>
     </div>
   );

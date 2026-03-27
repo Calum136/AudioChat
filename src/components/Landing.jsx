@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useRoomStore } from '../stores/roomStore';
 import AuthForm from './AuthForm';
+import ConfirmDialog from './ConfirmDialog';
+import FriendsPanel from './FriendsPanel';
 
 const THEME_ACCENTS = {
   'gaming-den': '#7c5cbf',
@@ -24,23 +26,11 @@ const THEME_EMOJI = {
   'retro-arcade': '\u25B6',
 };
 
-function RoomCard({ room, onEnter, onDelete, index }) {
-  const [confirming, setConfirming] = useState(false);
+function RoomCard({ room, onEnter, onRequestDelete, index }) {
   const [copied, setCopied] = useState(false);
   const accent = THEME_ACCENTS[room.theme] || THEME_ACCENTS['gaming-den'];
   const label = THEME_LABELS[room.theme] || 'Room';
   const emoji = THEME_EMOJI[room.theme] || '\u2694';
-
-  const handleDelete = (e) => {
-    e.stopPropagation();
-    if (confirming) {
-      onDelete(room.id);
-      setConfirming(false);
-    } else {
-      setConfirming(true);
-      setTimeout(() => setConfirming(false), 3000);
-    }
-  };
 
   const handleCopyCode = (e) => {
     e.stopPropagation();
@@ -69,11 +59,14 @@ function RoomCard({ room, onEnter, onDelete, index }) {
         </span>
       </div>
       <button
-        className={`room-tile-delete ${confirming ? 'confirming' : ''}`}
-        onClick={handleDelete}
-        title={confirming ? 'Click again to confirm' : 'Delete room'}
+        className="room-tile-delete"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRequestDelete(room);
+        }}
+        title="Delete room"
       >
-        {confirming ? '?' : '\u00D7'}
+        {'\u00D7'}
       </button>
     </button>
   );
@@ -94,7 +87,8 @@ export default function Landing() {
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState('create'); // 'create' | 'join'
+  const [mode, setMode] = useState('create');
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -137,12 +131,14 @@ export default function Landing() {
     setBusy(false);
   };
 
-  const handleDelete = async (roomId) => {
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteRoom(roomId, user.id);
+      await deleteRoom(deleteTarget.id, user.id);
     } catch (e) {
       setError(e.message);
     }
+    setDeleteTarget(null);
   };
 
   // Unauthenticated: hero + auth form
@@ -169,7 +165,7 @@ export default function Landing() {
     );
   }
 
-  // Authenticated: game-menu style dashboard
+  // Authenticated: dashboard with friends sidebar
   return (
     <div className="landing">
       <div className="landing-bg">
@@ -177,105 +173,122 @@ export default function Landing() {
         <div className="aurora aurora-2" />
         <div className="aurora aurora-3" />
       </div>
-      <div className="dashboard">
-        {/* Compact header */}
-        <header className="dash-header fade-up">
-          <h1 className="dash-title">Sidequest</h1>
-          <div className="dash-user">
-            <div className="user-pip" style={{ background: user.color }} />
-            <span className="user-name">{user.displayName}</span>
-            <button className="sign-out-btn" onClick={signOut}>Log out</button>
-          </div>
-        </header>
+      <div className="dash-layout">
+        <div className="dashboard">
+          {/* Compact header */}
+          <header className="dash-header fade-up">
+            <h1 className="dash-title">Sidequest</h1>
+            <div className="dash-user">
+              <div className="user-pip" style={{ background: user.color }} />
+              <span className="user-name">{user.displayName}</span>
+              <button className="sign-out-btn" onClick={signOut}>Log out</button>
+            </div>
+          </header>
 
-        {/* Quick actions bar */}
-        <div className="quick-bar fade-up" style={{ animationDelay: '80ms' }}>
-          <div className="quick-tabs">
-            <button
-              className={`quick-tab ${mode === 'create' ? 'active' : ''}`}
-              onClick={() => setMode('create')}
-            >
-              + New Room
-            </button>
-            <button
-              className={`quick-tab ${mode === 'join' ? 'active' : ''}`}
-              onClick={() => setMode('join')}
-            >
-              Join Room
-            </button>
+          {/* Quick actions bar */}
+          <div className="quick-bar fade-up" style={{ animationDelay: '80ms' }}>
+            <div className="quick-tabs">
+              <button
+                className={`quick-tab ${mode === 'create' ? 'active' : ''}`}
+                onClick={() => setMode('create')}
+              >
+                + New Room
+              </button>
+              <button
+                className={`quick-tab ${mode === 'join' ? 'active' : ''}`}
+                onClick={() => setMode('join')}
+              >
+                Join Room
+              </button>
+            </div>
+            <div className="quick-action">
+              {mode === 'create' ? (
+                <div className="action-row">
+                  <input
+                    type="text"
+                    className="quick-input"
+                    placeholder="Name your room..."
+                    value={roomName}
+                    onChange={(e) => setRoomName(e.target.value)}
+                    maxLength={30}
+                    onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                  />
+                  <button
+                    className="action-btn"
+                    onClick={handleCreate}
+                    disabled={busy || !roomName.trim()}
+                  >
+                    {busy ? <div className="loading-spinner tiny" /> : 'Create'}
+                  </button>
+                </div>
+              ) : (
+                <div className="action-row">
+                  <input
+                    type="text"
+                    className="quick-input join-code-input"
+                    placeholder="Enter code..."
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value)}
+                    maxLength={8}
+                    onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+                  />
+                  <button
+                    className="action-btn"
+                    onClick={handleJoin}
+                    disabled={busy || !joinCode.trim()}
+                  >
+                    {busy ? <div className="loading-spinner tiny" /> : 'Join'}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="quick-action">
-            {mode === 'create' ? (
-              <div className="action-row">
-                <input
-                  type="text"
-                  className="quick-input"
-                  placeholder="Name your room..."
-                  value={roomName}
-                  onChange={(e) => setRoomName(e.target.value)}
-                  maxLength={30}
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                />
-                <button
-                  className="action-btn"
-                  onClick={handleCreate}
-                  disabled={busy || !roomName.trim()}
-                >
-                  {busy ? <div className="loading-spinner tiny" /> : 'Create'}
-                </button>
+
+          {error && <div className="dash-error fade-up">{error}</div>}
+
+          {/* Rooms grid */}
+          <div className="rooms-section fade-up" style={{ animationDelay: '160ms' }}>
+            {myRoomsLoading ? (
+              <div className="rooms-loading">
+                <div className="loading-spinner small" />
+              </div>
+            ) : myRooms.length > 0 ? (
+              <div className="room-grid">
+                {myRooms.map((room, i) => (
+                  <RoomCard
+                    key={room.id}
+                    room={room}
+                    index={i}
+                    onEnter={handleRejoin}
+                    onRequestDelete={setDeleteTarget}
+                  />
+                ))}
               </div>
             ) : (
-              <div className="action-row">
-                <input
-                  type="text"
-                  className="quick-input join-code-input"
-                  placeholder="Enter code..."
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value)}
-                  maxLength={8}
-                  onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-                />
-                <button
-                  className="action-btn"
-                  onClick={handleJoin}
-                  disabled={busy || !joinCode.trim()}
-                >
-                  {busy ? <div className="loading-spinner tiny" /> : 'Join'}
-                </button>
+              <div className="rooms-empty fade-up">
+                <div className="empty-icon">~</div>
+                <p>No rooms yet</p>
+                <span>Create a room above to get started</span>
               </div>
             )}
           </div>
         </div>
 
-        {error && <div className="dash-error fade-up">{error}</div>}
-
-        {/* Rooms grid */}
-        <div className="rooms-section fade-up" style={{ animationDelay: '160ms' }}>
-          {myRoomsLoading ? (
-            <div className="rooms-loading">
-              <div className="loading-spinner small" />
-            </div>
-          ) : myRooms.length > 0 ? (
-            <div className="room-grid">
-              {myRooms.map((room, i) => (
-                <RoomCard
-                  key={room.id}
-                  room={room}
-                  index={i}
-                  onEnter={handleRejoin}
-                  onDelete={handleDelete}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="rooms-empty fade-up">
-              <div className="empty-icon">~</div>
-              <p>No rooms yet</p>
-              <span>Create a room above to get started</span>
-            </div>
-          )}
+        {/* Friends sidebar */}
+        <div className="dash-friends fade-up" style={{ animationDelay: '240ms' }}>
+          <FriendsPanel />
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title={`Delete "${deleteTarget?.name}"?`}
+        message="This room and all its furniture will be permanently deleted."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
