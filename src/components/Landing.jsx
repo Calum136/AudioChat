@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useRoomStore } from '../stores/roomStore';
 import AuthForm from './AuthForm';
@@ -19,18 +19,108 @@ const THEME_LABELS = {
   'retro-arcade': 'Arcade',
 };
 
-const THEME_EMOJI = {
-  'gaming-den': '\u2694',
-  'scifi-lounge': '\u269B',
-  'fantasy-tavern': '\u2615',
-  'retro-arcade': '\u25B6',
+// Simple pixel art room preview thumbnails (16x12 grids)
+const THEME_PREVIEWS = {
+  'gaming-den': {
+    grid: [
+      '................',
+      '.33333333333333.',
+      '.34444444444443.',
+      '.34555454554543.',
+      '.34444444444443.',
+      '.34444444444443.',
+      '.34444444444443.',
+      '.34446664444443.',
+      '.34446764444443.',
+      '.34446664444443.',
+      '.33333333333333.',
+      '................',
+    ],
+    palette: ['transparent', '#1a1020', '#2a1a30', '#221828', '#2a1a30', '#362040', '#7c5cbf', '#9b7aba'],
+  },
+  'scifi-lounge': {
+    grid: [
+      '................',
+      '.33333333333333.',
+      '.34444544444443.',
+      '.34444444544443.',
+      '.34544444444543.',
+      '.34444444444443.',
+      '.34444664444443.',
+      '.34444674444443.',
+      '.34444664444443.',
+      '.34444444444443.',
+      '.33333333333333.',
+      '................',
+    ],
+    palette: ['transparent', '#0a1828', '#1a2838', '#0e1420', '#0e1e30', '#1a4a6a', '#4ecdc4', '#70e8e0'],
+  },
+  'fantasy-tavern': {
+    grid: [
+      '................',
+      '.33333333333333.',
+      '.34444444444443.',
+      '.34555444555443.',
+      '.34444444444443.',
+      '.34444444444443.',
+      '.34444664444443.',
+      '.34446774644443.',
+      '.34444664444443.',
+      '.34444444444443.',
+      '.33333333333333.',
+      '................',
+    ],
+    palette: ['transparent', '#1a0e06', '#2a1e10', '#1a1008', '#3a2510', '#4a3520', '#e8a838', '#ffc848'],
+  },
+  'retro-arcade': {
+    grid: [
+      '................',
+      '.33333333333333.',
+      '.34454344543443.',
+      '.34343454343543.',
+      '.34454344543443.',
+      '.34343454343543.',
+      '.34444664444443.',
+      '.34446764444443.',
+      '.34444664444443.',
+      '.34454344543443.',
+      '.33333333333333.',
+      '................',
+    ],
+    palette: ['transparent', '#0a0414', '#1a0828', '#0e0618', '#1a0e28', '#301848', '#e85d75', '#ff7a90'],
+  },
 };
+
+// Render a tiny room preview to canvas data URL
+const previewCache = {};
+function getRoomPreview(theme) {
+  if (previewCache[theme]) return previewCache[theme];
+  const preview = THEME_PREVIEWS[theme] || THEME_PREVIEWS['gaming-den'];
+  const rows = preview.grid;
+  const h = rows.length;
+  const w = rows[0].length;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = parseInt(rows[y][x], 16);
+      if (idx > 0 && preview.palette[idx]) {
+        ctx.fillStyle = preview.palette[idx];
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+  }
+  const url = canvas.toDataURL();
+  previewCache[theme] = url;
+  return url;
+}
 
 function RoomCard({ room, onEnter, onRequestDelete, index }) {
   const [copied, setCopied] = useState(false);
   const accent = THEME_ACCENTS[room.theme] || THEME_ACCENTS['gaming-den'];
   const label = THEME_LABELS[room.theme] || 'Room';
-  const emoji = THEME_EMOJI[room.theme] || '\u2694';
 
   const handleCopyCode = (e) => {
     e.stopPropagation();
@@ -46,7 +136,7 @@ function RoomCard({ room, onEnter, onRequestDelete, index }) {
       style={{ '--tile-accent': accent, animationDelay: `${index * 60}ms` }}
       onClick={() => onEnter(room)}
     >
-      <div className="room-tile-theme-icon">{emoji}</div>
+      <img className="room-tile-preview" src={getRoomPreview(room.theme)} alt={label} />
       <span className="room-tile-name">{room.name}</span>
       <div className="room-tile-footer">
         <span className="room-tile-label">{label}</span>

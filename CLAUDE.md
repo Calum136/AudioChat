@@ -85,6 +85,7 @@ Cozy multiplayer rooms with voice chat. Users build custom rooms, drag in furnit
 - [ ] Email rate limiting causing issues — investigate custom SMTP or Supabase plan upgrade
 - [ ] Test isometric room with real multiplayer (sign in, create room, place furniture, verify grid)
 - [ ] Add room walls (back walls of isometric room for visual framing)
+- [ ] Themed room shapes: each room type gets a unique floor shape (sci-fi = spaceship cockpit, tavern = bar with counter, gaming den = L-shaped gaming setup, arcade = arcade hall with rows). Replace generic 8x8 square grid with theme-specific layouts.
 - [ ] Furniture animation frames (idle bobble, placement bounce)
 - [ ] Avatar animation (idle breathing, walk cycle for future movement)
 - [ ] User-uploaded custom furniture sprites (PNG upload → sprite pipeline)
