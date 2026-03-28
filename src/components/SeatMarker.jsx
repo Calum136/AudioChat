@@ -29,9 +29,11 @@ export default function SeatMarker({ furnitureId, seatIndex, seat }) {
   const avatarTemplate = isStandingSpot ? standingAvatar : sittingAvatar;
   const avatarUrl = useMemo(() => {
     if (!occupant) return null;
-    const palette = getAvatarPalette(occupant.color || '#5577bb');
+    // Use stored avatar config if this is the current user
+    const avatarConfig = (iAmHere && user?.avatar) ? user.avatar : occupant.avatar;
+    const palette = getAvatarPalette(occupant.color || '#5577bb', avatarConfig);
     return renderPixelGrid(avatarTemplate.grid, palette, AVATAR_SCALE);
-  }, [occupant, avatarTemplate]);
+  }, [occupant, avatarTemplate, iAmHere, user]);
 
   const avatarW = avatarTemplate.grid[0].length * AVATAR_SCALE;
   const avatarH = avatarTemplate.grid.length * AVATAR_SCALE;

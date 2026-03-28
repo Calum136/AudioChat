@@ -34,13 +34,15 @@ Cozy multiplayer rooms with voice chat. Users build custom rooms, drag in furnit
 
 ## Key Files
 - `src/stores/roomStore.js` — Central store (room lifecycle, furniture CRUD, seating via Presence, theme)
-- `src/stores/authStore.js` — Auth state (signUp, signIn, signOut, fetchProfile)
+- `src/stores/authStore.js` — Auth state (signUp, signIn, signOut, fetchProfile, updateAvatar, updateDisplayName, updatePassword, updateEmail, deleteAccount)
 - `src/stores/voiceStore.js` — LiveKit voice (connect, disconnect, spatial audio, speaking detection)
 - `src/lib/supabase.js` — Supabase client singleton
 - `src/lib/roomService.js` — DB query wrappers (rooms, furniture CRUD)
 - `src/lib/roomChannel.js` — Realtime channel setup (Presence + Broadcast)
 - `src/hooks/useVoiceConnection.js` — Bridges seating state to voice connection
 - `src/components/AuthForm.jsx` — Sign in / sign up UI
+- `src/components/SettingsPage.jsx` — Settings modal (Account, Avatar, Appearance tabs)
+- `src/components/AvatarEditor.jsx` — Pixel avatar editor with live preview + Supabase save
 - `src/components/Landing.jsx` — Auth + room create/join
 - `src/components/AppShell.jsx` — Room header, layout, owner controls
 - `src/components/ParticipantPanel.jsx` — Real-time participant list (replaced FriendPanel)
@@ -85,7 +87,9 @@ Cozy multiplayer rooms with voice chat. Users build custom rooms, drag in furnit
 - [ ] Email rate limiting causing issues — investigate custom SMTP or Supabase plan upgrade
 - [ ] Test isometric room with real multiplayer (sign in, create room, place furniture, verify grid)
 - [ ] Add room walls (back walls of isometric room for visual framing)
-- [ ] Themed room shapes: each room type gets a unique floor shape (sci-fi = spaceship cockpit, tavern = bar with counter, gaming den = L-shaped gaming setup, arcade = arcade hall with rows). Replace generic 8x8 square grid with theme-specific layouts.
+- [ ] Themed room shapes: each room type gets a unique floor shape AND visual context. Sci-fi = spaceship shape flying in space (stars/nebula background). Tavern = L-shaped with a bar counter section. Gaming den = square with LED strip lights on walls + light switch toggle on/off. Retro arcade = come up with something unique. Replace generic 8x8 square grid with theme-specific layouts.
+- [ ] PENDING: Apply migration 005_avatar_columns.sql to Supabase (run SQL in dashboard)
+- [ ] Avatar as profile pic — use pixel avatar everywhere (friend list, room presence, header) instead of color circle with initial
 - [ ] Furniture animation frames (idle bobble, placement bounce)
 - [ ] Avatar animation (idle breathing, walk cycle for future movement)
 - [ ] User-uploaded custom furniture sprites (PNG upload → sprite pipeline)
@@ -109,3 +113,4 @@ Registered Sidequest in root CLAUDE.md and project-memory config. Created projec
 - **Mar 20, 2026:** Deployed pixel art update to Netlify production. Fixed Netlify auto-deploy: added VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_LIVEKIT_URL env vars to Netlify dashboard (all public client-side keys, not secrets). Continuous deployment from GitHub now working. Isometric grid, furniture sprites, and room rendering verified working on production. Known bug: furniture can be deleted in edit mode but cannot be added from the palette.
 - **Mar 26, 2026:** Bug fixes from friend testing session. (1) Sitting feature fixed — SeatMarker click was bubbling to Room's click handler, which called moveAvatar with stale presence data (null seat), overwriting the sitDown. Added e.stopPropagation() to SeatMarker.handleClick. (2) Click-to-copy join codes — room cards now copy join code to clipboard on click with "Copied!" feedback. (3) Auto-zoom — room now auto-scales to fit the browser viewport on load and window resize, calculated from room pixel dimensions vs container size. (4) Dashboard redesign — replaced corporate card/badge layout with game-menu style: single-column layout, compact quick-bar with create/join tabs, tile grid for rooms with theme icons and accent glows, cleaner empty state. Removed feature badges and info panel. (5) Captured email rate limit issue to Open Brain — Supabase free tier rate limits causing problems, need to investigate custom SMTP or plan upgrade.
 - **Mar 26, 2026:** Friends system implemented. New DB table: friendships (pending/accepted/blocked status, blocked_by tracking). New files: friendService.js (CRUD wrappers), friendStore.js (Zustand — friends list, global presence via supabase.channel('presence:global'), search, mute), FriendsPanel.jsx (search users, add/accept/decline requests, online/offline status, "in your room" indicator, context menu with mute/block/remove), SocialPanel.jsx (tab wrapper — Room + Friends tabs for in-room sidebar), ConfirmDialog.jsx (reusable glassmorphic modal). Room deletion now uses proper ConfirmDialog instead of confusing "?" two-click pattern. Mute integrated into voiceStore — muted users get gain=0 in spatial audio pipeline. Friends panel appears as sidebar on landing dashboard and as "Friends" tab in room. 4 new SVG icons (userPlus, dots, search, block). Migration 004_friendships.sql created — needs to be applied to Supabase. Build compiles clean.
+- **Mar 28, 2026:** Major UI + feature update. (1) Fixed loading stuck forever bug — authStore.initialize() now wraps fetchProfile in try/catch so loading always clears. (2) Friends UI — blocked friends now subdued (35% opacity), dots menu button enlarged (28px). Fixed button-in-button nesting warning in RoomCard (changed outer to div). (3) Avatar editor — new AvatarEditor.jsx component with live pixel art preview, 5 color pickers (hair, skin, shirt, pants, background), saves to Supabase via new avatar columns. Migration 005_avatar_columns.sql adds avatar_hair/skin/shirt/pants/bg to profiles. Updated getAvatarPalette() to accept avatar config object. (4) Settings page — new SettingsPage.jsx modal with sidebar nav (Account/Avatar/Appearance tabs). Account: edit display name, change email, change password, sign out, delete account. Avatar: full avatar editor. Appearance: reduced motion toggle + UI scale selector (localStorage-persisted). (5) Updated CLAUDE.md with detailed room shape specs and avatar-as-profile-pic todo. (6) Created UI mockup (docs/mockup-main-page.html) showing design direction with cursor glow, 3D tilt cards, particles, aurora background, activity feed.

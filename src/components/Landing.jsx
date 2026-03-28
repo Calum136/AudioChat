@@ -4,6 +4,7 @@ import { useRoomStore } from '../stores/roomStore';
 import AuthForm from './AuthForm';
 import ConfirmDialog from './ConfirmDialog';
 import FriendsPanel from './FriendsPanel';
+import SettingsPage from './SettingsPage';
 
 const THEME_ACCENTS = {
   'gaming-den': '#7c5cbf',
@@ -131,10 +132,13 @@ function RoomCard({ room, onEnter, onRequestDelete, index }) {
   };
 
   return (
-    <button
+    <div
       className="room-tile"
       style={{ '--tile-accent': accent, animationDelay: `${index * 60}ms` }}
       onClick={() => onEnter(room)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && onEnter(room)}
     >
       <img className="room-tile-preview" src={getRoomPreview(room.theme)} alt={label} />
       <span className="room-tile-name">{room.name}</span>
@@ -158,7 +162,7 @@ function RoomCard({ room, onEnter, onRequestDelete, index }) {
       >
         {'\u00D7'}
       </button>
-    </button>
+    </div>
   );
 }
 
@@ -190,6 +194,7 @@ export default function Landing() {
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState('create');
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -286,6 +291,7 @@ export default function Landing() {
             <div className="dash-user">
               <div className="user-pip" style={{ background: user.color }} />
               <span className="user-name">{user.displayName}</span>
+              <button className="sign-out-btn" onClick={() => setShowSettings(true)}>Settings</button>
               <button className="sign-out-btn" onClick={signOut}>Log out</button>
             </div>
           </header>
@@ -394,6 +400,8 @@ export default function Landing() {
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      {showSettings && <SettingsPage onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

@@ -123,6 +123,14 @@ export const speakingIndicator = {
   ],
 };
 
+// Darken a hex color by a factor (0-1)
+function darkenColor(hex, factor = 0.8) {
+  const r = Math.round(parseInt(hex.slice(1, 3), 16) * factor);
+  const g = Math.round(parseInt(hex.slice(3, 5), 16) * factor);
+  const b = Math.round(parseInt(hex.slice(5, 7), 16) * factor);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
 // Available skin tone options for avatar customization
 export const SKIN_TONES = [
   '#fce4c8',   // pale peach
@@ -147,19 +155,25 @@ export const HAIR_COLORS = [
 ];
 
 /**
- * Generate a color palette for an avatar based on a user's theme color.
- * Maps the user's assigned color to the shirt, and picks complementary
- * hair and skin tones via simple hash. Returns 9-element palette array.
+ * Generate a color palette for an avatar.
+ * If an avatar config object is provided ({ hair, skin, shirt, pants }),
+ * use those colors directly. Otherwise fall back to hash-based selection
+ * from the user's theme color.
  */
-export function getAvatarPalette(userColor) {
-  // Darken a hex color by a factor (0-1)
-  function darken(hex, factor = 0.8) {
-    const r = Math.round(parseInt(hex.slice(1, 3), 16) * factor);
-    const g = Math.round(parseInt(hex.slice(3, 5), 16) * factor);
-    const b = Math.round(parseInt(hex.slice(5, 7), 16) * factor);
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+export function getAvatarPalette(userColor, avatarConfig) {
+  if (avatarConfig && avatarConfig.hair) {
+    return [
+      'transparent',
+      '#2a1a0e',
+      avatarConfig.skin || '#f0c8a0',
+      darkenColor(avatarConfig.skin || '#f0c8a0', 0.82),
+      avatarConfig.hair,
+      avatarConfig.shirt || userColor,
+      darkenColor(avatarConfig.shirt || userColor, 0.82),
+      '#2a1a0e',
+      avatarConfig.pants || darkenColor(avatarConfig.shirt || userColor, 0.70),
+    ];
   }
-
   // Simple hash from color string to pick consistent variations
   const hash = parseInt(userColor.slice(1), 16);
 
@@ -173,11 +187,11 @@ export function getAvatarPalette(userColor) {
     'transparent',            // 0: transparent
     '#2a1a0e',                // 1: outline (soft dark brown)
     skin,                     // 2: skin
-    darken(skin, 0.82),       // 3: skin shadow
+    darkenColor(skin, 0.82),       // 3: skin shadow
     hair,                     // 4: hair
     userColor,                // 5: shirt = user's color
-    darken(userColor, 0.82),  // 6: shirt shadow
+    darkenColor(userColor, 0.82),  // 6: shirt shadow
     '#2a1a0e',                // 7: eyes (dark brown)
-    darken(userColor, 0.70),  // 8: pants (shirt darkened 30%)
+    darkenColor(userColor, 0.70),  // 8: pants (shirt darkened 30%)
   ];
 }
