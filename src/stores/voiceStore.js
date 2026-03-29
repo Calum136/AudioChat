@@ -5,6 +5,13 @@ import { useAudioSettingsStore } from './audioSettingsStore';
 
 const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL;
 
+// In Electron production builds, the app loads from file:// so relative API
+// calls won't work. Use the Netlify-hosted function instead.
+const isElectronProd = window.electronAPI?.isElectron && window.location.protocol === 'file:';
+const TOKEN_URL = isElectronProd
+  ? 'https://sidequest-hangout.netlify.app/api/livekit-token'
+  : '/api/livekit-token';
+
 // Spatial audio constants
 const ROOM_WIDTH = 500;
 const MAX_DISTANCE = 600;
@@ -41,8 +48,8 @@ export const useVoiceStore = create((set, get) => ({
         publishDefaults: { audioBitrate: 24000 },
       });
 
-      // Fetch token from our server
-      const res = await fetch('/api/livekit-token', {
+      // Fetch token from our server (or Netlify in Electron production)
+      const res = await fetch(TOKEN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomName, identity }),
