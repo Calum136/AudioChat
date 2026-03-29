@@ -29,6 +29,10 @@ export default function AppShell() {
 
   const participantCount = Object.keys(participants).length;
   const isOwner = user && ownerId === user.id;
+  const me = user ? participants[user.id] : null;
+  const seatType = me?.seatType || 'sit';
+  const isListenOrAfk = seatType === 'listen' || seatType === 'afk';
+  const isDeafened = useVoiceStore((s) => s.isDeafened);
 
   return (
     <div className="app-shell">
@@ -58,13 +62,22 @@ export default function AppShell() {
         </div>
         <div className="header-right">
           {connectionState === 'connected' && (
-            <button
-              className={`voice-btn ${isMuted ? 'muted' : ''}`}
-              onClick={toggleMute}
-              title={isMuted ? 'Unmute' : 'Mute'}
-            >
-              <Icon name={isMuted ? 'micOff' : 'mic'} size={16} />
-            </button>
+            <>
+              <button
+                className={`voice-btn ${isMuted ? 'muted' : ''} ${isListenOrAfk ? 'locked' : ''}`}
+                onClick={isListenOrAfk ? undefined : toggleMute}
+                title={isListenOrAfk ? `Mic locked (${seatType === 'afk' ? 'AFK' : 'listen-only'} seat)` : isMuted ? 'Unmute' : 'Mute'}
+                disabled={isListenOrAfk}
+              >
+                <Icon name={isMuted ? 'micOff' : 'mic'} size={16} />
+              </button>
+              {isDeafened && (
+                <span className="voice-badge afk">AFK</span>
+              )}
+              {seatType === 'listen' && (
+                <span className="voice-badge listen">Listen Only</span>
+              )}
+            </>
           )}
           <MusicPlayer />
           {isOwner && <ThemePicker />}

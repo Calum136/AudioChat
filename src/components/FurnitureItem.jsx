@@ -178,19 +178,25 @@ export default function FurnitureItem({ id, type, gridX, gridY, flipped, originX
           furnitureScreenY={centerOffset.y}
         />
       ))}
-      {isEditing && (
-        <div className="furniture-edit-controls">
-          <button
-            className="furniture-remove"
-            onClick={(e) => {
-              e.stopPropagation();
-              removeFurniture(id);
-            }}
-          >
-            &times;
-          </button>
-        </div>
-      )}
+      {isEditing && (() => {
+        // Don't show delete button if anyone is sitting on this furniture
+        const hasOccupants = Object.values(participants).some(
+          (p) => p.seatFurnitureId === id
+        );
+        return !hasOccupants && (
+          <div className="furniture-edit-controls">
+            <button
+              className="furniture-remove"
+              onClick={(e) => {
+                e.stopPropagation();
+                removeFurniture(id);
+              }}
+            >
+              &times;
+            </button>
+          </div>
+        );
+      })()}
     </div>
   );
 }

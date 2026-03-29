@@ -7,7 +7,7 @@ import { FURNITURE_CATALOG } from '../data/furniture';
 /**
  * Bridges roomStore seating state to voiceStore connection.
  * - Connects to voice when user sits down
- * - Disconnects when user stands up
+ * - Disconnects when user stands up (with debounce for chair switching)
  * - Updates spatial audio when furniture positions change
  */
 export function useVoiceConnection() {
@@ -21,10 +21,11 @@ export function useVoiceConnection() {
   const updateSpatialAudio = useVoiceStore((s) => s.updateSpatialAudio);
 
   const prevSeatRef = useRef(null);
+  const disconnectTimerRef = useRef(null);
 
   const me = user ? participants[user.id] : null;
 
-  // Connect/disconnect based on seating
+  // Connect/disconnect based on seating (debounced to handle chair-to-chair transitions)
   useEffect(() => {
     if (!user || !roomId) return;
 
@@ -32,12 +33,52 @@ export function useVoiceConnection() {
     const wasSeated = !!prevSeatRef.current;
     prevSeatRef.current = me?.seatFurnitureId;
 
-    if (isSeated && !wasSeated) {
-      connect(roomId, user.id);
+    if (isSeated) {
+      // Cancel any pending disconnect (chair-to-chair switch)
+      if (disconnectTimerRef.current) {
+        clearTimeout(disconnectTimerRef.current);
+        disconnectTimerRef.current = null;
+      }
+      if (!wasSeated) {
+        // First time sitting — connect
+        connect(roomId, user.id);
+      }
+      // If switching chairs while already connected, just update spatial (no reconnect needed)
     } else if (!isSeated && wasSeated) {
-      disconnect();
+      // Debounce disconnect by 200ms — if user sits in another chair within this window, skip disconnect
+      disconnectTimerRef.current = setTimeout(() => {
+        disconnectTimerRef.current = null;
+        // Re-check: still not seated?
+        const currentMe = useRoomStore.getState().participants[user.id];
+        if (!currentMe?.seatFurnitureId) {
+          disconnect();
+        }
+      }, 200);
     }
   }, [me?.seatFurnitureId, roomId, user, connect, disconnect]);
+
+  // Handle seat type changes (listen-only, AFK)
+  useEffect(() => {
+    if (connectionState !== 'connected' || !me?.seatFurnitureId) return;
+
+    const room = useVoiceStore.getState().room;
+    if (!room) return;
+
+    const seatType = me.seatType || 'sit';
+
+    if (seatType === 'listen' || seatType === 'afk') {
+      // Auto-mute mic for listen-only and AFK seats
+      room.localParticipant.setMicrophoneEnabled(false);
+      useVoiceStore.setState({ isMuted: true });
+    }
+
+    if (seatType === 'afk') {
+      // AFK: also deafen (mute all incoming)
+      useVoiceStore.getState().setDeafened(true);
+    } else {
+      useVoiceStore.getState().setDeafened(false);
+    }
+  }, [connectionState, me?.seatType, me?.seatFurnitureId]);
 
   // Update spatial audio when positions change
   useEffect(() => {
@@ -69,6 +110,9 @@ export function useVoiceConnection() {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (disconnectTimerRef.current) {
+        clearTimeout(disconnectTimerRef.current);
+      }
       const state = useVoiceStore.getState();
       if (state.connectionState !== 'disconnected') {
         state.disconnect();

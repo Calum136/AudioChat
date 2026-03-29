@@ -212,4 +212,38 @@ export const FURNITURE_CATALOG = {
     animated: true,
     frameDelay: 1200,
   },
+  listencouch: {
+    name: 'Listener Couch',
+    icon: 'couch',
+    sprite: 'couch',
+    tileW: 2,
+    tileH: 1,
+    category: 'seating',
+    seats: [
+      { offsetX: -20, offsetY: -20, label: 'Listen only (left)', type: 'listen' },
+      { offsetX: 20, offsetY: -20, label: 'Listen only (right)', type: 'listen' },
+    ],
+  },
+  listencushion: {
+    name: 'Listener Cushion',
+    icon: 'floorcushion',
+    sprite: 'floorcushion',
+    tileW: 1,
+    tileH: 1,
+    category: 'seating',
+    seats: [
+      { offsetX: 0, offsetY: -18, label: 'Listen only', type: 'listen' },
+    ],
+  },
+  afkbeanbag: {
+    name: 'AFK Bean Bag',
+    icon: 'beanbag',
+    sprite: 'beanbag',
+    tileW: 1,
+    tileH: 1,
+    category: 'seating',
+    seats: [
+      { offsetX: 0, offsetY: -20, label: 'AFK zone', type: 'afk' },
+    ],
+  },
 };

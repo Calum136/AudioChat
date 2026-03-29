@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Room, RoomEvent, Track } from 'livekit-client';
 import { useFriendStore } from './friendStore';
+import { useAudioSettingsStore } from './audioSettingsStore';
 
 const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL;
 
@@ -19,6 +20,7 @@ export const useVoiceStore = create((set, get) => ({
 
   // Local audio
   isMuted: false,
+  isDeafened: false,
 
   // Speaking state — { identity: boolean }
   speakingMap: {},
@@ -77,6 +79,7 @@ export const useVoiceStore = create((set, get) => ({
           room: null,
           connectionState: 'disconnected',
           isMuted: false,
+          isDeafened: false,
           speakingMap: {},
         });
       });
@@ -109,6 +112,7 @@ export const useVoiceStore = create((set, get) => ({
       room: null,
       connectionState: 'disconnected',
       isMuted: false,
+      isDeafened: false,
       speakingMap: {},
     });
   },
@@ -119,6 +123,15 @@ export const useVoiceStore = create((set, get) => ({
     const newMuted = !isMuted;
     room.localParticipant.setMicrophoneEnabled(!newMuted);
     set({ isMuted: newMuted });
+  },
+
+  setDeafened: (deafened) => {
+    set({ isDeafened: deafened });
+    // When deafened, mute all incoming audio
+    const sourceNodes = get()._sourceNodes;
+    for (const [, nodes] of sourceNodes) {
+      nodes.gain.gain.value = deafened ? 0 : 1;
+    }
   },
 
   // --- Spatial audio ---
@@ -188,11 +201,13 @@ export const useVoiceStore = create((set, get) => ({
       const pan = clamp((pos.x - myPos.x) / ROOM_WIDTH, -1, 1);
       nodes.panner.pan.value = pan;
 
-      // Gain based on distance (floor at 0.15 — always audible)
+      // Gain based on distance (floor at 0.15 — always audible), scaled by voice volume
       const dx = pos.x - myPos.x;
       const dy = pos.y - myPos.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      const gainValue = clamp(1 - distance / MAX_DISTANCE, 0.15, 1);
+      const { masterVolume, voiceVolume } = useAudioSettingsStore.getState();
+      const spatialGain = clamp(1 - distance / MAX_DISTANCE, 0.15, 1);
+      const gainValue = spatialGain * masterVolume * voiceVolume;
       nodes.gain.gain.value = gainValue;
     }
   },

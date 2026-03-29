@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { useAudioSettingsStore } from '../stores/audioSettingsStore';
 import AvatarEditor from './AvatarEditor';
 import ConfirmDialog from './ConfirmDialog';
+import { playJoinSound } from '../lib/sounds';
 
 const TABS = [
   { id: 'account', label: 'Account' },
   { id: 'avatar', label: 'Avatar' },
+  { id: 'audio', label: 'Audio' },
   { id: 'appearance', label: 'Appearance' },
 ];
 
@@ -154,6 +157,72 @@ function AccountSettings() {
   );
 }
 
+function VolumeSlider({ label, value, onChange, testFn }) {
+  return (
+    <div className="settings-volume-row">
+      <span className="settings-volume-label">{label}</span>
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.05"
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="settings-slider"
+      />
+      <span className="settings-volume-value">{Math.round(value * 100)}%</span>
+      {testFn && (
+        <button className="settings-btn small" onClick={testFn}>Test</button>
+      )}
+    </div>
+  );
+}
+
+function AudioSettings() {
+  const masterVolume = useAudioSettingsStore((s) => s.masterVolume);
+  const sfxVolume = useAudioSettingsStore((s) => s.sfxVolume);
+  const voiceVolume = useAudioSettingsStore((s) => s.voiceVolume);
+  const micInputVolume = useAudioSettingsStore((s) => s.micInputVolume);
+  const sfxEnabled = useAudioSettingsStore((s) => s.sfxEnabled);
+  const setMasterVolume = useAudioSettingsStore((s) => s.setMasterVolume);
+  const setSfxVolume = useAudioSettingsStore((s) => s.setSfxVolume);
+  const setVoiceVolume = useAudioSettingsStore((s) => s.setVoiceVolume);
+  const setMicInputVolume = useAudioSettingsStore((s) => s.setMicInputVolume);
+  const setSfxEnabled = useAudioSettingsStore((s) => s.setSfxEnabled);
+
+  return (
+    <>
+      <div className="settings-section">
+        <span className="settings-section-title">Master Volume</span>
+        <VolumeSlider label="Master" value={masterVolume} onChange={setMasterVolume} />
+      </div>
+
+      <div className="settings-section">
+        <span className="settings-section-title">Sound Effects</span>
+        <div className="settings-toggle">
+          <span className="settings-toggle-label">Enable sound effects</span>
+          <button
+            className={`settings-toggle-switch ${sfxEnabled ? 'on' : ''}`}
+            onClick={() => setSfxEnabled(!sfxEnabled)}
+          />
+        </div>
+        <VolumeSlider
+          label="SFX Volume"
+          value={sfxVolume}
+          onChange={setSfxVolume}
+          testFn={() => playJoinSound()}
+        />
+      </div>
+
+      <div className="settings-section">
+        <span className="settings-section-title">Voice Chat</span>
+        <VolumeSlider label="Voice Volume" value={voiceVolume} onChange={setVoiceVolume} />
+        <VolumeSlider label="Mic Input" value={micInputVolume} onChange={setMicInputVolume} />
+      </div>
+    </>
+  );
+}
+
 function AppearanceSettings() {
   const [reducedMotion, setReducedMotion] = useState(
     () => localStorage.getItem('sq-reduced-motion') === 'true'
@@ -236,6 +305,7 @@ export default function SettingsPage({ onClose }) {
 
           {tab === 'account' && <AccountSettings />}
           {tab === 'avatar' && <AvatarEditor />}
+          {tab === 'audio' && <AudioSettings />}
           {tab === 'appearance' && <AppearanceSettings />}
         </div>
       </div>

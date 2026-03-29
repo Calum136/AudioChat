@@ -16,6 +16,8 @@ export default function SeatMarker({ furnitureId, seatIndex, seat }) {
   const speakingMap = useVoiceStore((s) => s.speakingMap);
 
   const isStandingSpot = seat.type === 'stand';
+  const isListenOnly = seat.type === 'listen';
+  const isAfk = seat.type === 'afk';
 
   // Find the occupant of this seat
   const occupant = Object.values(participants).find(
@@ -29,8 +31,8 @@ export default function SeatMarker({ furnitureId, seatIndex, seat }) {
   const avatarTemplate = isStandingSpot ? standingAvatar : sittingAvatar;
   const avatarUrl = useMemo(() => {
     if (!occupant) return null;
-    // Use stored avatar config if this is the current user
-    const avatarConfig = (iAmHere && user?.avatar) ? user.avatar : occupant.avatar;
+    // Use local user's avatar (most up-to-date) if this is me, otherwise use presence avatar
+    const avatarConfig = iAmHere ? (user?.avatar || occupant.avatar) : occupant.avatar;
     const palette = getAvatarPalette(occupant.color || '#5577bb', avatarConfig);
     return renderPixelGrid(avatarTemplate.grid, palette, AVATAR_SCALE);
   }, [occupant, avatarTemplate, iAmHere, user]);
@@ -51,7 +53,7 @@ export default function SeatMarker({ furnitureId, seatIndex, seat }) {
 
   return (
     <div
-      className={`seat-marker ${occupant ? 'occupied' : 'available'} ${iAmHere ? 'is-me' : ''} ${isEditing ? 'editing' : ''} ${isStandingSpot ? 'standing-spot' : ''}`}
+      className={`seat-marker ${occupant ? 'occupied' : 'available'} ${iAmHere ? 'is-me' : ''} ${isEditing ? 'editing' : ''} ${isStandingSpot ? 'standing-spot' : ''} ${isListenOnly ? 'listen-only' : ''} ${isAfk ? 'afk-spot' : ''}`}
       style={{
         position: 'absolute',
         left: '50%',
@@ -61,10 +63,10 @@ export default function SeatMarker({ furnitureId, seatIndex, seat }) {
         transform: 'translate(-50%, -50%)',
       }}
       onClick={handleClick}
-      title={occupant ? `${occupant.displayName} is here` : seat.label || (isStandingSpot ? 'Stand here' : 'Click to sit')}
+      title={occupant ? `${occupant.displayName}${isListenOnly ? ' (listening)' : isAfk ? ' (AFK)' : ''}` : seat.label || (isStandingSpot ? 'Stand here' : isListenOnly ? 'Listen only' : isAfk ? 'AFK zone' : 'Click to sit')}
     >
       {occupant ? (
-        <div className={`seat-avatar-pixel ${isSpeaking ? 'speaking' : ''} ${iAmHere ? 'is-me' : ''}`}>
+        <div className={`seat-avatar-pixel ${isSpeaking ? 'speaking' : ''} ${iAmHere ? 'is-me' : ''} ${isAfk ? 'afk-seat' : ''}`}>
           <img
             src={avatarUrl}
             className="avatar-sprite"
@@ -75,7 +77,7 @@ export default function SeatMarker({ furnitureId, seatIndex, seat }) {
           {isSpeaking && <div className="speaking-waves" />}
         </div>
       ) : (
-        <div className={`seat-dot ${isStandingSpot ? 'stand-dot' : ''}`} />
+        <div className={`seat-dot ${isStandingSpot ? 'stand-dot' : ''} ${isListenOnly ? 'listen-dot' : ''} ${isAfk ? 'afk-dot' : ''}`} />
       )}
     </div>
   );

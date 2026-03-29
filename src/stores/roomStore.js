@@ -123,8 +123,10 @@ export const useRoomStore = create((set, get) => ({
               id: p.userId,
               displayName: p.displayName,
               color: p.color,
+              avatar: p.avatar || null,
               seatFurnitureId: p.seatFurnitureId || null,
               seatIndex: p.seatIndex ?? null,
+              seatType: p.seatType || null,
               gridX: p.gridX ?? null,
               gridY: p.gridY ?? null,
             };
@@ -195,6 +197,7 @@ export const useRoomStore = create((set, get) => ({
             userId: user.id,
             displayName: user.displayName,
             color: user.color,
+            avatar: user.avatar || null,
             seatFurnitureId: null,
             seatIndex: null,
             gridX: spawnX,
@@ -287,21 +290,29 @@ export const useRoomStore = create((set, get) => ({
     // Fallback: user joined room but presence hasn't synced yet
     const authUser = useAuthStore.getState().user;
     if (authUser && authUser.id === userId) {
-      return { id: authUser.id, displayName: authUser.displayName, color: authUser.color, gridX: 4, gridY: 4, seatFurnitureId: null, seatIndex: null };
+      return { id: authUser.id, displayName: authUser.displayName, color: authUser.color, avatar: authUser.avatar || null, gridX: 4, gridY: 4, seatFurnitureId: null, seatIndex: null };
     }
     return null;
   },
 
   sitDown: (userId, furnitureId, seatIndex) => {
-    const { _channel } = get();
+    const { _channel, furniture } = get();
     const me = get()._getMe(userId);
     if (!me || !_channel) return;
+
+    // Determine seat type from furniture catalog
+    const furn = furniture.find((f) => f.id === furnitureId);
+    const cat = furn ? FURNITURE_CATALOG[furn.type] : null;
+    const seatType = cat?.seats?.[seatIndex]?.type || 'sit';
+
     _channel.track({
       userId: me.id,
       displayName: me.displayName,
       color: me.color,
+      avatar: me.avatar || null,
       seatFurnitureId: furnitureId,
       seatIndex,
+      seatType,
       gridX: me.gridX,
       gridY: me.gridY,
     });
@@ -315,6 +326,7 @@ export const useRoomStore = create((set, get) => ({
       userId: me.id,
       displayName: me.displayName,
       color: me.color,
+      avatar: me.avatar || null,
       seatFurnitureId: null,
       seatIndex: null,
       gridX: me.gridX,
@@ -330,6 +342,7 @@ export const useRoomStore = create((set, get) => ({
       userId: me.id,
       displayName: me.displayName,
       color: me.color,
+      avatar: me.avatar || null,
       seatFurnitureId: me.seatFurnitureId,
       seatIndex: me.seatIndex,
       gridX,

@@ -14,9 +14,11 @@ export default function StandingAvatar({ participant, screenX, screenY, depth })
   const isSpeaking = speakingMap[participant.id];
 
   const avatarUrl = useMemo(() => {
-    const palette = getAvatarPalette(participant.color || '#5577bb');
+    // Use local user's avatar (most up-to-date) if this is me, otherwise use presence avatar
+    const avatarConfig = isMe ? (user?.avatar || participant.avatar) : participant.avatar;
+    const palette = getAvatarPalette(participant.color || '#5577bb', avatarConfig);
     return renderPixelGrid(standingAvatar.grid, palette, AVATAR_SCALE);
-  }, [participant.color]);
+  }, [participant.color, participant.avatar, isMe, user?.avatar]);
 
   const avatarW = standingAvatar.grid[0].length * AVATAR_SCALE;
   const avatarH = standingAvatar.grid.length * AVATAR_SCALE;
