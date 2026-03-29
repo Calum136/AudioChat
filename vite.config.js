@@ -7,6 +7,8 @@ export default defineConfig({
   plugins: [react()],
   base: isElectron ? './' : '/',
   server: {
+    strictPort: true,
+    port: 5173,
     proxy: {
       '/api/livekit-token': 'http://localhost:3000',
     },
