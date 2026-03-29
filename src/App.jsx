@@ -18,6 +18,12 @@ export default function App() {
 
   useEffect(() => {
     initialize();
+    // Restore persisted appearance settings
+    const scale = localStorage.getItem('sq-ui-scale');
+    if (scale) document.documentElement.dataset.uiScale = scale;
+    if (localStorage.getItem('sq-reduced-motion') === 'true') {
+      document.documentElement.classList.add('reduced-motion');
+    }
   }, [initialize]);
 
   // Connect global presence + load friends when authenticated
