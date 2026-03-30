@@ -18,7 +18,7 @@
     "appId": "com.sidequest.app",
     "productName": "Sidequest",
     "directories": {
-      "output": "release"
+      "output": "dist-electron"
     },
     "files": [
       "dist/**/*",

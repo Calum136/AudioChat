@@ -230,6 +230,7 @@ body {
   inset: 0;
   background: var(--bg-deep);
   overflow: hidden;
+  pointer-events: none;
 }
 
 .aurora {
@@ -582,6 +583,28 @@ body {
 .sign-out-btn:hover {
   color: var(--text-primary);
   border-color: rgba(255, 255, 255, 0.15);
+}
+
+.bmc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid rgba(232, 168, 56, 0.2);
+  border-radius: 6px;
+  background: rgba(232, 168, 56, 0.08);
+  color: var(--gold);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.bmc-btn:hover {
+  background: rgba(232, 168, 56, 0.15);
+  border-color: rgba(232, 168, 56, 0.35);
+  color: #ffc848;
 }
 
 /* Quick action bar */

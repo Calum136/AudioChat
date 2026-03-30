@@ -291,6 +291,16 @@ export default function Landing() {
             <div className="dash-user">
               <div className="user-pip" style={{ background: user.color }} />
               <span className="user-name">{user.displayName}</span>
+              <a
+                className="bmc-btn"
+                href="https://buymeacoffee.com/maritimehomebuyer"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Buy me a coffee"
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 22h10a1 1 0 001-1v-3H6v3a1 1 0 001 1zM18 4H6a2 2 0 00-2 2v8a4 4 0 004 4h8a4 4 0 004-4h1a3 3 0 003-3V7a3 3 0 00-3-3zm3 7a1 1 0 01-1 1h-1V6h1a1 1 0 011 1v4z"/></svg>
+                Support
+              </a>
               <button className="sign-out-btn" onClick={() => setShowSettings(true)}>Settings</button>
               <button className="sign-out-btn" onClick={signOut}>Log out</button>
             </div>
