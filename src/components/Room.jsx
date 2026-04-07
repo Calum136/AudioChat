@@ -216,10 +216,12 @@ export default function Room() {
     }
   }, [isEditing, selectedType, placeFurnitureAt, setSelectedType, user, moveAvatar, originX, originY, zoom, ROOM_GRID_W, ROOM_GRID_H, mask]);
 
-  // Sort furniture by depth for correct overlapping
+  // Sort furniture by depth for correct overlapping, hide items on void cells
   const sortedFurniture = useMemo(() => {
-    return [...furniture].sort((a, b) => (a.x + a.y) - (b.x + b.y));
-  }, [furniture]);
+    return [...furniture]
+      .filter((f) => isInBounds(f.x, f.y, ROOM_GRID_W, ROOM_GRID_H) && isInMask(f.x, f.y, mask))
+      .sort((a, b) => (a.x + a.y) - (b.x + b.y));
+  }, [furniture, ROOM_GRID_W, ROOM_GRID_H, mask]);
 
   const totalSeats = furniture.reduce((sum, f) => {
     const cat = FURNITURE_CATALOG[f.type];
