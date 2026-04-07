@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { FURNITURE_CATALOG } from '../data/furniture';
-import { ROOM_SHAPES, findSpawnPosition } from '../data/roomShapes';
+import { ROOM_SHAPES, findSpawnPosition, isInMask } from '../data/roomShapes';
 import { createRoomChannel } from '../lib/roomChannel';
 import * as roomService from '../lib/roomService';
 import { useAuthStore } from './authStore';
@@ -170,7 +170,18 @@ export const useRoomStore = create((set, get) => ({
         }));
       },
       onThemeChange: (payload) => {
-        set({ theme: payload.theme });
+        const newTheme = payload.theme;
+        const shape = ROOM_SHAPES[newTheme] || ROOM_SHAPES['gaming-den'];
+        set({ theme: newTheme });
+        // Re-position standing users whose grid position is now outside the new shape
+        const me = get().participants[user.id];
+        if (me && !me.seatFurnitureId && me.gridX != null) {
+          const inBounds = me.gridX >= 0 && me.gridX < shape.gridW && me.gridY >= 0 && me.gridY < shape.gridH;
+          if (!inBounds || !isInMask(me.gridX, me.gridY, shape.mask)) {
+            const spawn = findSpawnPosition(shape, 0);
+            get().moveAvatar(user.id, spawn.gx, spawn.gy);
+          }
+        }
       },
       onKnock: (payload) => {
         // Someone is knocking to join — play sound and add to list
@@ -356,11 +367,26 @@ export const useRoomStore = create((set, get) => ({
 
   // ======== Theme (owner broadcasts + persists) ========
 
-  setTheme: async (theme) => {
-    const { roomId, _channel } = get();
-    set({ theme });
-    await roomService.updateRoomTheme(roomId, theme);
-    _channel.send({ type: 'broadcast', event: 'room:theme', payload: { theme } });
+  setTheme: async (newTheme) => {
+    const { roomId, _channel, participants } = get();
+    const shape = ROOM_SHAPES[newTheme] || ROOM_SHAPES['gaming-den'];
+    set({ theme: newTheme });
+
+    // Re-position standing users whose grid position is now outside the new shape
+    const userId = useAuthStore.getState().user?.id;
+    if (userId && participants[userId]) {
+      const me = participants[userId];
+      if (!me.seatFurnitureId && me.gridX != null) {
+        const inBounds = me.gridX >= 0 && me.gridX < shape.gridW && me.gridY >= 0 && me.gridY < shape.gridH;
+        if (!inBounds || !isInMask(me.gridX, me.gridY, shape.mask)) {
+          const spawn = findSpawnPosition(shape, 0);
+          get().moveAvatar(userId, spawn.gx, spawn.gy);
+        }
+      }
+    }
+
+    await roomService.updateRoomTheme(roomId, newTheme);
+    _channel.send({ type: 'broadcast', event: 'room:theme', payload: { theme: newTheme } });
   },
 
   setRoomName: (roomName) => set({ roomName }),
