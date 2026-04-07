@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { FURNITURE_CATALOG } from '../data/furniture';
+import { ROOM_SHAPES, findSpawnPosition } from '../data/roomShapes';
 import { createRoomChannel } from '../lib/roomChannel';
 import * as roomService from '../lib/roomService';
 import { useAuthStore } from './authStore';
@@ -184,9 +185,12 @@ export const useRoomStore = create((set, get) => ({
     });
 
     // Subscribe and track presence (with timeout to handle stale connections)
+    const roomTheme = room.theme || 'gaming-den';
+    const shape = ROOM_SHAPES[roomTheme] || ROOM_SHAPES['gaming-den'];
     const hash = parseInt((user.id || '').replace(/\D/g, '').slice(0, 4) || '0', 10);
-    const spawnX = 3 + (hash % 3);
-    const spawnY = 3 + (Math.floor(hash / 3) % 3);
+    const spawn = findSpawnPosition(shape, hash);
+    const spawnX = spawn.gx;
+    const spawnY = spawn.gy;
 
     const subscribeWithTimeout = () => new Promise((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('Connection timed out. Please try again.')), 8000);

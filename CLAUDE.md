@@ -1,7 +1,7 @@
 # Sidequest
-# Last updated: Mar 20, 2026
+# Last updated: Apr 5, 2026
 
-## Status: ACTIVE - Pixel art + isometric grid system implemented. Habbo Hotel-style room rendering.
+## Status: ACTIVE - Low/mid priority. Front-end prototype complete. Not being actively sprinted on but still in play.
 ## Completion: ~40%
 
 ## What It Is
@@ -92,18 +92,22 @@ Cozy multiplayer rooms with voice chat. Users build custom rooms, drag in furnit
 - [x] ~~Audio settings~~ — Audio tab in Settings with master/sfx/voice/mic volume controls
 - [x] ~~Listen-only areas~~ — listen seat type auto-mutes mic, AFK seat type mutes + deafens
 - [x] ~~Electron desktop app~~ — `npm run electron:dev` / `npm run electron:build` for desktop exe
+- [x] ~~Voice: echo cancellation~~ — added echoCancellation to LiveKit audioCaptureDefaults
+- [x] ~~Voice: mic input volume control~~ — wired audioSettingsStore.micInputVolume to Web Audio GainNode on outgoing mic
+- [x] ~~Voice: connection error recovery~~ — retry up to 3x with exponential backoff, error badge in header
+- [x] ~~Voice: talk while standing~~ — voice connects on room entry, not just when sitting. Standing users have spatial audio too
+- [x] ~~Themed room shapes~~ — each theme has unique floor layout: gaming-den 8x8 square, scifi-lounge 10x8 spaceship, fantasy-tavern 10x8 L-shape, retro-arcade 9x9 cross. Shape masks, dynamic grid dimensions, themed backgrounds (starfield for sci-fi, neon grid for arcade)
 - [ ] BUG: Furniture cannot be added from palette (existing bug, not yet fixed)
 - [ ] Email rate limiting causing issues — investigate custom SMTP or Supabase plan upgrade
 - [ ] Test isometric room with real multiplayer (sign in, create room, place furniture, verify grid)
-- [ ] Add room walls (back walls of isometric room for visual framing)
-- [ ] Themed room shapes: each room type gets a unique floor shape AND visual context. Sci-fi = spaceship shape flying in space (stars/nebula background). Tavern = L-shaped with a bar counter section. Gaming den = square with LED strip lights on walls + light switch toggle on/off. Retro arcade = come up with something unique. Replace generic 8x8 square grid with theme-specific layouts.
 - [ ] PENDING: Apply migration 005_avatar_columns.sql to Supabase (run SQL in dashboard)
 - [ ] Avatar as profile pic — use pixel avatar everywhere (friend list, room presence, header) instead of color circle with initial
+- [ ] Spotify "Listen Along" integration — DJ controls playback, syncs via Supabase Broadcast, each user plays on own Spotify account
+- [ ] Gaming Den LED light switch (owner-toggleable wall glow)
 - [ ] Furniture animation frames (idle bobble, placement bounce)
 - [ ] Avatar animation (idle breathing, walk cycle for future movement)
 - [ ] User-uploaded custom furniture sprites (PNG upload → sprite pipeline)
 - [ ] More furniture variety (bed, TV, bookcase, rug, plant, window, door)
-- [ ] Electron wrapper for downloadable exe (Discord-style desktop app)
 - [ ] Rename project directory from AudioChat → Sidequest
 
 ## Session Notes
@@ -124,3 +128,6 @@ Registered Sidequest in root CLAUDE.md and project-memory config. Created projec
 - **Mar 26, 2026:** Friends system implemented. New DB table: friendships (pending/accepted/blocked status, blocked_by tracking). New files: friendService.js (CRUD wrappers), friendStore.js (Zustand — friends list, global presence via supabase.channel('presence:global'), search, mute), FriendsPanel.jsx (search users, add/accept/decline requests, online/offline status, "in your room" indicator, context menu with mute/block/remove), SocialPanel.jsx (tab wrapper — Room + Friends tabs for in-room sidebar), ConfirmDialog.jsx (reusable glassmorphic modal). Room deletion now uses proper ConfirmDialog instead of confusing "?" two-click pattern. Mute integrated into voiceStore — muted users get gain=0 in spatial audio pipeline. Friends panel appears as sidebar on landing dashboard and as "Friends" tab in room. 4 new SVG icons (userPlus, dots, search, block). Migration 004_friendships.sql created — needs to be applied to Supabase. Build compiles clean.
 - **Mar 28, 2026:** Major UI + feature update. (1) Fixed loading stuck forever bug — authStore.initialize() now wraps fetchProfile in try/catch so loading always clears. (2) Friends UI — blocked friends now subdued (35% opacity), dots menu button enlarged (28px). Fixed button-in-button nesting warning in RoomCard (changed outer to div). (3) Avatar editor — new AvatarEditor.jsx component with live pixel art preview, 5 color pickers (hair, skin, shirt, pants, background), saves to Supabase via new avatar columns. Migration 005_avatar_columns.sql adds avatar_hair/skin/shirt/pants/bg to profiles. Updated getAvatarPalette() to accept avatar config object. (4) Settings page — new SettingsPage.jsx modal with sidebar nav (Account/Avatar/Appearance tabs). Account: edit display name, change email, change password, sign out, delete account. Avatar: full avatar editor. Appearance: reduced motion toggle + UI scale selector (localStorage-persisted). (5) Updated CLAUDE.md with detailed room shape specs and avatar-as-profile-pic todo. (6) Created UI mockup (docs/mockup-main-page.html) showing design direction with cursor glow, 3D tilt cards, particles, aurora background, activity feed.
 - **Mar 29, 2026:** Friend testing feedback batch. (1) Electron desktop app — electron/main.js + preload.js, package.json updated with electron:dev/electron:build scripts, electron-builder config for Windows NSIS installer. (2) Avatar persistence bug fixed — avatar config (hair/skin/shirt/pants/bg) now included in Supabase Realtime Presence data, so other users see your actual avatar instead of random hash-generated colors. Fixed in roomStore (all track() calls), SeatMarker, and StandingAvatar. (3) Audio settings — new audioSettingsStore.js with localStorage persistence, Audio tab in SettingsPage with sliders for master/SFX/voice/mic volumes + SFX enable toggle + test button. Sound effects (join/leave/knock) and voice spatial audio all respect volume settings. (4) Can't delete occupied furniture — X button hidden when anyone is sitting on the furniture piece. (5) Voice breaks on chair switch — debounced disconnect by 200ms so chair-to-chair transitions don't trigger disconnect/reconnect cycle. (6) Listen-only seats — new 'listen' seat type auto-mutes mic on sit, mic button locked. New furniture: Listener Couch (2-seat), Listener Cushion. (7) AFK zone — new 'afk' seat type mutes mic AND deafens all incoming audio. New furniture: AFK Bean Bag. Visual: AFK avatars shown at 50% opacity with grayscale, header shows AFK/Listen Only badges. Join/leave sounds already existed from Mar 26.
+- **Mar 30, 2026:** Deep dive audit completed (Mar 30). Renamed Sidequest. 25 commits in 12 days (Mar 18-30). Key milestones: multiplayer MVP (Mar 18), pixel art overhaul (Mar 20), friends system (Mar 26), Electron desktop app (Mar 29). Live at sidequest-hangout.netlify.app. Blocking: email rate limiting, 3 pending migrations, furniture palette broken.
+- **Apr 5, 2026:** Deep dive audit completed (Mar 30). Renamed Sidequest. 25 commits in 12 days (Mar 18-30). Key milestones: multiplayer MVP (Mar 18), pixel art overhaul (Mar 20), friends system (Mar 26), Electron desktop app (Mar 29). Live at sidequest-hangout.netlify.app. Blocking: email rate limiting, 3 pending migrations, furniture palette broken.
+- **Apr 7, 2026:** Voice chat overhaul + themed room shapes. Voice: added echo cancellation, wired mic input volume slider (was dead code), connection error recovery with 3x retry + error badge, voice-while-standing (connects on room entry, spatial audio for standing users). Room shapes: each theme now has unique floor layout — gaming-den 8x8 square, scifi-lounge 10x8 spaceship silhouette (no walls, starfield background), fantasy-tavern 10x8 L-shape with bar section, retro-arcade 9x9 cross (neon grid background). New file: roomShapes.js (shape masks, spawn positions). Parameterized grid dimensions throughout (Room.jsx, FurnitureItem.jsx, wallSprites.js). Collision detection respects shape masks. Spotify "Listen Along" integration scoped for next session.

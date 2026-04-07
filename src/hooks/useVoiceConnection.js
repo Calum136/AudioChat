@@ -3,12 +3,16 @@ import { useAuthStore } from '../stores/authStore';
 import { useRoomStore } from '../stores/roomStore';
 import { useVoiceStore } from '../stores/voiceStore';
 import { FURNITURE_CATALOG } from '../data/furniture';
+import { isoToScreen, TILE_W, TILE_H } from '../lib/isoGrid';
+import { ROOM_SHAPES } from '../data/roomShapes';
+import { WALL_H } from '../data/sprites/wallSprites';
 
 /**
- * Bridges roomStore seating state to voiceStore connection.
- * - Connects to voice when user sits down
- * - Disconnects when user stands up (with debounce for chair switching)
- * - Updates spatial audio when furniture positions change
+ * Bridges roomStore state to voiceStore connection.
+ * - Connects to voice when user enters a room
+ * - Disconnects when user leaves the room
+ * - Updates spatial audio based on seated or standing position
+ * - Enforces seat-type rules (listen-only, AFK)
  */
 export function useVoiceConnection() {
   const user = useAuthStore((s) => s.user);
@@ -16,46 +20,34 @@ export function useVoiceConnection() {
   const furniture = useRoomStore((s) => s.furniture);
   const roomId = useRoomStore((s) => s.roomId);
   const connectionState = useVoiceStore((s) => s.connectionState);
+  const theme = useRoomStore((s) => s.theme);
   const connect = useVoiceStore((s) => s.connect);
   const disconnect = useVoiceStore((s) => s.disconnect);
   const updateSpatialAudio = useVoiceStore((s) => s.updateSpatialAudio);
 
-  const prevSeatRef = useRef(null);
-  const disconnectTimerRef = useRef(null);
+  const prevRoomRef = useRef(null);
 
   const me = user ? participants[user.id] : null;
 
-  // Connect/disconnect based on seating (debounced to handle chair-to-chair transitions)
+  // Derive origin from current theme shape
+  const shape = ROOM_SHAPES[theme] || ROOM_SHAPES['gaming-den'];
+  const originX = shape.gridH * (TILE_W / 2);
+  const originY = shape.hasWalls ? WALL_H : 0;
+
+  // Connect voice when entering a room, disconnect when leaving
   useEffect(() => {
-    if (!user || !roomId) return;
+    if (!user) return;
 
-    const isSeated = !!me?.seatFurnitureId;
-    const wasSeated = !!prevSeatRef.current;
-    prevSeatRef.current = me?.seatFurnitureId;
+    const wasInRoom = !!prevRoomRef.current;
+    const isInRoom = !!roomId;
+    prevRoomRef.current = roomId;
 
-    if (isSeated) {
-      // Cancel any pending disconnect (chair-to-chair switch)
-      if (disconnectTimerRef.current) {
-        clearTimeout(disconnectTimerRef.current);
-        disconnectTimerRef.current = null;
-      }
-      if (!wasSeated) {
-        // First time sitting — connect
-        connect(roomId, user.id);
-      }
-      // If switching chairs while already connected, just update spatial (no reconnect needed)
-    } else if (!isSeated && wasSeated) {
-      // Debounce disconnect by 200ms — if user sits in another chair within this window, skip disconnect
-      disconnectTimerRef.current = setTimeout(() => {
-        disconnectTimerRef.current = null;
-        // Re-check: still not seated?
-        const currentMe = useRoomStore.getState().participants[user.id];
-        if (!currentMe?.seatFurnitureId) {
-          disconnect();
-        }
-      }, 200);
+    if (isInRoom && !wasInRoom) {
+      connect(roomId, user.id);
+    } else if (!isInRoom && wasInRoom) {
+      disconnect();
     }
-  }, [me?.seatFurnitureId, roomId, user, connect, disconnect]);
+  }, [roomId, user, connect, disconnect]);
 
   // Handle seat type changes (listen-only, AFK)
   useEffect(() => {
@@ -67,56 +59,88 @@ export function useVoiceConnection() {
     const seatType = me.seatType || 'sit';
 
     if (seatType === 'listen' || seatType === 'afk') {
-      // Auto-mute mic for listen-only and AFK seats
       room.localParticipant.setMicrophoneEnabled(false);
       useVoiceStore.setState({ isMuted: true });
     }
 
     if (seatType === 'afk') {
-      // AFK: also deafen (mute all incoming)
       useVoiceStore.getState().setDeafened(true);
     } else {
       useVoiceStore.getState().setDeafened(false);
     }
   }, [connectionState, me?.seatType, me?.seatFurnitureId]);
 
-  // Update spatial audio when positions change
+  // Re-enable mic when leaving a listen/AFK seat (standing up or switching to normal seat)
   useEffect(() => {
-    if (connectionState !== 'connected' || !me?.seatFurnitureId) return;
+    if (connectionState !== 'connected') return;
 
-    const myFurn = furniture.find((f) => f.id === me.seatFurnitureId);
-    if (!myFurn) return;
+    const room = useVoiceStore.getState().room;
+    if (!room) return;
 
-    const myCat = FURNITURE_CATALOG[myFurn.type];
-    const mySeat = myCat?.seats?.[me.seatIndex] || { offsetX: 0, offsetY: 0 };
-    const myPos = { x: myFurn.x + mySeat.offsetX, y: myFurn.y + mySeat.offsetY };
+    const seatType = me?.seatType || null;
+    const isSeated = !!me?.seatFurnitureId;
 
+    // If standing or in a normal seat, un-deafen and allow mic
+    if (!isSeated || (seatType !== 'listen' && seatType !== 'afk')) {
+      useVoiceStore.getState().setDeafened(false);
+    }
+  }, [connectionState, me?.seatFurnitureId, me?.seatType]);
+
+  // Update spatial audio when positions change — works for both seated and standing users
+  useEffect(() => {
+    if (connectionState !== 'connected' || !me) return;
+
+    // Get local user's position
+    const myPos = getParticipantPosition(me, furniture, originX, originY);
+    if (!myPos) return;
+
+    // Get all other participants' positions
     const participantPositions = {};
     for (const p of Object.values(participants)) {
-      if (p.id === user.id || !p.seatFurnitureId) continue;
-      const furn = furniture.find((f) => f.id === p.seatFurnitureId);
-      if (!furn) continue;
-      const cat = FURNITURE_CATALOG[furn.type];
-      const seat = cat?.seats?.[p.seatIndex] || { offsetX: 0, offsetY: 0 };
-      participantPositions[p.id] = {
-        x: furn.x + seat.offsetX,
-        y: furn.y + seat.offsetY,
-      };
+      if (p.id === user.id) continue;
+      const pos = getParticipantPosition(p, furniture, originX, originY);
+      if (pos) {
+        participantPositions[p.id] = pos;
+      }
     }
 
     updateSpatialAudio(myPos, participantPositions);
-  }, [connectionState, me?.seatFurnitureId, me?.seatIndex, furniture, participants, user, updateSpatialAudio]);
+  }, [connectionState, me?.seatFurnitureId, me?.seatIndex, me?.gridX, me?.gridY, furniture, participants, user, updateSpatialAudio, originX, originY]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (disconnectTimerRef.current) {
-        clearTimeout(disconnectTimerRef.current);
-      }
       const state = useVoiceStore.getState();
       if (state.connectionState !== 'disconnected') {
         state.disconnect();
       }
     };
   }, []);
+}
+
+/**
+ * Get a participant's spatial position for audio processing.
+ * Seated users: position from furniture + seat offset.
+ * Standing users: position from grid coordinates via isoToScreen.
+ */
+function getParticipantPosition(participant, furniture, originX, originY) {
+  if (participant.seatFurnitureId) {
+    // Seated — use furniture position + seat offset
+    const furn = furniture.find((f) => f.id === participant.seatFurnitureId);
+    if (!furn) return null;
+    const cat = FURNITURE_CATALOG[furn.type];
+    const seat = cat?.seats?.[participant.seatIndex] || { offsetX: 0, offsetY: 0 };
+    return {
+      x: furn.x + seat.offsetX,
+      y: furn.y + seat.offsetY,
+    };
+  }
+
+  // Standing — use grid coordinates converted to screen position
+  if (participant.gridX != null && participant.gridY != null) {
+    const screen = isoToScreen(participant.gridX, participant.gridY, originX, originY);
+    return { x: screen.x, y: screen.y };
+  }
+
+  return null;
 }

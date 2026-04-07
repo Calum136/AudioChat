@@ -1222,6 +1222,65 @@ body {
   outline-offset: -2px;
 }
 
+/* Themed room backgrounds for wall-less rooms */
+.room-view.room-bg-scifi-lounge {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(40, 20, 80, 0.6) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(20, 40, 100, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(10, 10, 30, 1) 0%, #050510 100%) !important;
+  overflow: hidden;
+}
+.room-view.room-bg-scifi-lounge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 15%, rgba(180, 200, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 25% 40%, rgba(200, 220, 255, 0.6), transparent),
+    radial-gradient(1px 1px at 45% 10%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 60% 55%, rgba(180, 200, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 75% 25%, rgba(200, 220, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 90% 70%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1px 1px at 15% 80%, rgba(180, 200, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 35% 65%, rgba(200, 220, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 55% 85%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 80% 45%, rgba(180, 200, 255, 0.6), transparent),
+    radial-gradient(2px 2px at 20% 30%, rgba(100, 180, 255, 0.9), transparent),
+    radial-gradient(2px 2px at 70% 60%, rgba(150, 100, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 40% 90%, rgba(200, 200, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 85% 15%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 5% 50%, rgba(180, 200, 255, 0.6), transparent);
+  pointer-events: none;
+  z-index: 0;
+  animation: starTwinkle 4s ease-in-out infinite alternate;
+}
+@keyframes starTwinkle {
+  0% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.room-view.room-bg-retro-arcade {
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(40, 15, 60, 0.9) 0%, rgba(15, 5, 25, 1) 100%) !important;
+  overflow: hidden;
+}
+.room-view.room-bg-retro-arcade::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(0deg, rgba(255, 0, 200, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 0, 200, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: 0;
+  animation: gridPulse 3s ease-in-out infinite alternate;
+}
+@keyframes gridPulse {
+  0% { opacity: 0.3; }
+  100% { opacity: 0.7; }
+}
+
 /* Isometric floor container */
 .iso-floor {
   position: relative;
@@ -1938,6 +1997,12 @@ body {
   background: rgba(128, 128, 128, 0.12);
   color: #888;
   border-color: rgba(128, 128, 128, 0.2);
+}
+
+.voice-badge.error {
+  background: rgba(220, 60, 60, 0.12);
+  color: #e55;
+  border-color: rgba(220, 60, 60, 0.2);
 }
 
 .voice-btn.locked {

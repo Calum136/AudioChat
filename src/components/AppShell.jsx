@@ -30,9 +30,10 @@ export default function AppShell() {
   const participantCount = Object.keys(participants).length;
   const isOwner = user && ownerId === user.id;
   const me = user ? participants[user.id] : null;
-  const seatType = me?.seatType || 'sit';
+  const seatType = me?.seatFurnitureId ? (me?.seatType || 'sit') : null;
   const isListenOrAfk = seatType === 'listen' || seatType === 'afk';
   const isDeafened = useVoiceStore((s) => s.isDeafened);
+  const connectionError = useVoiceStore((s) => s.connectionError);
 
   return (
     <div className="app-shell">
@@ -56,6 +57,9 @@ export default function AppShell() {
               )}
               {connectionState === 'connecting' && (
                 <span className="voice-badge connecting">Connecting...</span>
+              )}
+              {connectionError && connectionState === 'disconnected' && (
+                <span className="voice-badge error" title={connectionError}>Voice Error</span>
               )}
             </span>
           </div>

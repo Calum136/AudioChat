@@ -3,15 +3,13 @@ import { useRoomStore } from '../stores/roomStore';
 import { THEMES } from '../data/themes';
 import { FURNITURE_CATALOG } from '../data/furniture';
 import { FLOOR_TILES } from '../data/sprites/floorSprites';
-import { WALL_SPRITES, WALL_H, HALF_TILE, TILE_HALF_H } from '../data/sprites/wallSprites';
+import { WALL_SPRITES, WALL_H, HALF_TILE, TILE_HALF_H, getWallSprites } from '../data/sprites/wallSprites';
 import { renderPixelGrid } from '../lib/spriteRenderer';
 import { isoToScreen, screenToIso, snapToGrid, isInBounds, getDepth, TILE_W, TILE_H } from '../lib/isoGrid';
 import { useAuthStore } from '../stores/authStore';
+import { ROOM_SHAPES, isInMask } from '../data/roomShapes';
 import FurnitureItem from './FurnitureItem';
 import StandingAvatar from './StandingAvatar';
-
-const ROOM_GRID_W = 8;
-const ROOM_GRID_H = 8;
 
 export default function Room() {
   const furniture = useRoomStore((s) => s.furniture);
@@ -28,23 +26,29 @@ export default function Room() {
   const themeData = THEMES[theme];
   const [zoom, setZoom] = useState(1);
 
+  // Get shape for current theme
+  const shape = ROOM_SHAPES[theme] || ROOM_SHAPES['gaming-den'];
+  const ROOM_GRID_W = shape.gridW;
+  const ROOM_GRID_H = shape.gridH;
+  const mask = shape.mask;
+
   // Auto-fit zoom: scale room to fit the viewport on mount and resize
   useEffect(() => {
     const calcFitZoom = () => {
       const container = roomRef.current;
       if (!container) return;
       const totalW = (ROOM_GRID_W + ROOM_GRID_H) * (TILE_W / 2);
-      const totalH = (ROOM_GRID_W + ROOM_GRID_H) * (TILE_H / 2) + TILE_H + WALL_H;
-      const pad = 40; // breathing room
+      const totalH = (ROOM_GRID_W + ROOM_GRID_H) * (TILE_H / 2) + TILE_H + (shape.hasWalls ? WALL_H : 0);
+      const pad = 40;
       const fitW = (container.clientWidth - pad) / totalW;
       const fitH = (container.clientHeight - pad) / totalH;
       const fit = Math.min(fitW, fitH, 2);
-      setZoom(Math.max(0.4, Math.round(fit * 20) / 20)); // snap to 0.05 increments
+      setZoom(Math.max(0.4, Math.round(fit * 20) / 20));
     };
     calcFitZoom();
     window.addEventListener('resize', calcFitZoom);
     return () => window.removeEventListener('resize', calcFitZoom);
-  }, []);
+  }, [ROOM_GRID_W, ROOM_GRID_H, shape.hasWalls]);
 
   // Zoom handler (mouse wheel)
   const handleWheel = useCallback((e) => {
@@ -61,9 +65,10 @@ export default function Room() {
     return renderPixelGrid(tile.grid, tile.palette, 1);
   }, [theme]);
 
-  // Generate wall images for current theme (single sprite per wall face)
+  // Generate wall images for current theme (dynamic based on grid size)
   const wallData = useMemo(() => {
-    const sprites = WALL_SPRITES[theme];
+    if (!shape.hasWalls) return null;
+    const sprites = getWallSprites(theme, ROOM_GRID_W);
     if (!sprites) return null;
     return {
       left: {
@@ -82,25 +87,26 @@ export default function Room() {
         height: sprites.corner.height,
       },
     };
-  }, [theme]);
+  }, [theme, shape.hasWalls, ROOM_GRID_W]);
 
   // Calculate room origin — shifted down to make room for walls above
   const roomPixelWidth = (ROOM_GRID_W + ROOM_GRID_H) * (TILE_W / 2);
   const roomPixelHeight = (ROOM_GRID_W + ROOM_GRID_H) * (TILE_H / 2);
   const originX = ROOM_GRID_H * (TILE_W / 2);
-  const originY = WALL_H; // push floor down so walls render above
+  const originY = shape.hasWalls ? WALL_H : 0;
 
-  // Generate floor tile positions
+  // Generate floor tile positions (respecting shape mask)
   const floorTiles = useMemo(() => {
     const tiles = [];
     for (let gx = 0; gx < ROOM_GRID_W; gx++) {
       for (let gy = 0; gy < ROOM_GRID_H; gy++) {
+        if (!isInMask(gx, gy, mask)) continue;
         const { x, y } = isoToScreen(gx, gy, originX, originY);
         tiles.push({ gx, gy, x, y });
       }
     }
     return tiles;
-  }, [originX, originY]);
+  }, [ROOM_GRID_W, ROOM_GRID_H, mask, originX, originY]);
 
   // Build occupied cell set for collision detection
   const occupiedCells = useMemo(() => {
@@ -119,13 +125,14 @@ export default function Room() {
 
   // Light map: accumulate light from emitting furniture onto floor tiles
   const lightMap = useMemo(() => {
-    const map = new Map(); // key: "gx,gy" -> { color, opacity }
+    const map = new Map();
     for (const f of furniture) {
       const cat = FURNITURE_CATALOG[f.type];
       if (!cat || !cat.light) continue;
       const { radius, color } = cat.light;
       for (let gx = 0; gx < ROOM_GRID_W; gx++) {
         for (let gy = 0; gy < ROOM_GRID_H; gy++) {
+          if (!isInMask(gx, gy, mask)) continue;
           const dist = Math.abs(gx - f.x) + Math.abs(gy - f.y);
           if (dist <= radius) {
             const falloff = 1 - dist / (radius + 1);
@@ -141,7 +148,7 @@ export default function Room() {
       }
     }
     return map;
-  }, [furniture]);
+  }, [furniture, ROOM_GRID_W, ROOM_GRID_H, mask]);
 
   // Place furniture at grid coords (shared by drag-drop and click-to-place)
   const placeFurnitureAt = useCallback((type, screenX, screenY) => {
@@ -160,15 +167,17 @@ export default function Room() {
     if (!isInBounds(gx, gy, ROOM_GRID_W, ROOM_GRID_H)) return false;
     if (gx + cat.tileW > ROOM_GRID_W || gy + cat.tileH > ROOM_GRID_H) return false;
 
+    // Check all cells are within mask and not occupied
     for (let dx = 0; dx < cat.tileW; dx++) {
       for (let dy = 0; dy < cat.tileH; dy++) {
+        if (!isInMask(gx + dx, gy + dy, mask)) return false;
         if (occupiedCells.has(`${gx + dx},${gy + dy}`)) return false;
       }
     }
 
     addFurniture(type, gx, gy);
     return true;
-  }, [addFurniture, originX, originY, occupiedCells, zoom]);
+  }, [addFurniture, originX, originY, occupiedCells, zoom, ROOM_GRID_W, ROOM_GRID_H, mask]);
 
   // Drop handler: convert screen coords to grid coords
   const handleDragOver = useCallback((e) => {
@@ -186,7 +195,6 @@ export default function Room() {
 
   // Click handler: furniture placement (edit mode) or avatar movement (normal mode)
   const handleClick = useCallback((e) => {
-    // In edit mode with selected furniture type: place it
     if (isEditing && selectedType) {
       if (placeFurnitureAt(selectedType, e.clientX, e.clientY)) {
         setSelectedType(null);
@@ -194,7 +202,6 @@ export default function Room() {
       return;
     }
 
-    // Not in edit mode: move avatar to clicked grid cell
     if (!isEditing && user) {
       const floorEl = roomRef.current?.querySelector('.iso-floor');
       if (!floorEl) return;
@@ -203,11 +210,11 @@ export default function Room() {
       const sy = (e.clientY - rect.top) / zoom;
       const raw = screenToIso(sx, sy, originX, originY);
       const { gx, gy } = snapToGrid(raw.gx, raw.gy);
-      if (isInBounds(gx, gy, ROOM_GRID_W, ROOM_GRID_H)) {
+      if (isInBounds(gx, gy, ROOM_GRID_W, ROOM_GRID_H) && isInMask(gx, gy, mask)) {
         moveAvatar(user.id, gx, gy);
       }
     }
-  }, [isEditing, selectedType, placeFurnitureAt, setSelectedType, user, moveAvatar, originX, originY, zoom]);
+  }, [isEditing, selectedType, placeFurnitureAt, setSelectedType, user, moveAvatar, originX, originY, zoom, ROOM_GRID_W, ROOM_GRID_H, mask]);
 
   // Sort furniture by depth for correct overlapping
   const sortedFurniture = useMemo(() => {
@@ -218,6 +225,9 @@ export default function Room() {
     const cat = FURNITURE_CATALOG[f.type];
     return sum + (cat ? cat.seats.length : 0);
   }, 0);
+
+  // Determine background class for themed rooms
+  const bgClass = !shape.hasWalls ? `room-bg-${theme}` : '';
 
   return (
     <div className="room-container">
@@ -235,7 +245,7 @@ export default function Room() {
       </div>
       <div
         ref={roomRef}
-        className={`room-view ${isEditing ? 'editing' : ''} ${selectedType ? 'placing' : ''}`}
+        className={`room-view ${isEditing ? 'editing' : ''} ${selectedType ? 'placing' : ''} ${bgClass}`}
         style={{ background: themeData.roomBg }}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
@@ -249,72 +259,77 @@ export default function Room() {
             transform: `scale(${zoom})`,
             transformOrigin: 'center center',
             width: roomPixelWidth,
-            height: roomPixelHeight + TILE_H + WALL_H,
+            height: roomPixelHeight + TILE_H + (shape.hasWalls ? WALL_H : 0),
             position: 'relative',
           }}
         >
-          {/* Left wall — single continuous sprite along gy=0 edge */}
-          {wallData && (() => {
-            const { x, y } = isoToScreen(0, 0, originX, originY);
-            return (
-              <img
-                src={wallData.left.url}
-                className="wall-tile"
-                style={{
-                  position: 'absolute',
-                  left: x,
-                  top: y - WALL_H,
-                  width: wallData.left.width,
-                  height: wallData.left.height,
-                  zIndex: 0,
-                }}
-                draggable={false}
-                alt=""
-              />
-            );
-          })()}
+          {/* Walls — only rendered for themes with hasWalls */}
+          {wallData && (
+            <>
+              {/* Left wall */}
+              {(() => {
+                const { x, y } = isoToScreen(0, 0, originX, originY);
+                return (
+                  <img
+                    src={wallData.left.url}
+                    className="wall-tile"
+                    style={{
+                      position: 'absolute',
+                      left: x,
+                      top: y - WALL_H,
+                      width: wallData.left.width,
+                      height: wallData.left.height,
+                      zIndex: 0,
+                    }}
+                    draggable={false}
+                    alt=""
+                  />
+                );
+              })()}
 
-          {/* Right wall — single continuous sprite along gx=0 edge */}
-          {wallData && (() => {
-            const { x, y } = isoToScreen(0, 0, originX, originY);
-            return (
-              <img
-                src={wallData.right.url}
-                className="wall-tile"
-                style={{
-                  position: 'absolute',
-                  left: x - wallData.right.width,
-                  top: y - WALL_H,
-                  width: wallData.right.width,
-                  height: wallData.right.height,
-                  zIndex: 0,
-                }}
-                draggable={false}
-                alt=""
-              />
-            );
-          })()}
+              {/* Right wall */}
+              {(() => {
+                const { x, y } = isoToScreen(0, 0, originX, originY);
+                return (
+                  <img
+                    src={wallData.right.url}
+                    className="wall-tile"
+                    style={{
+                      position: 'absolute',
+                      left: x - wallData.right.width,
+                      top: y - WALL_H,
+                      width: wallData.right.width,
+                      height: wallData.right.height,
+                      zIndex: 0,
+                    }}
+                    draggable={false}
+                    alt=""
+                  />
+                );
+              })()}
 
-          {/* Corner column where walls meet */}
-          {wallData && (() => {
-            const { x, y } = isoToScreen(0, 0, originX, originY);
-            return (
-              <img
-                src={wallData.corner.url}
-                className="wall-tile"
-                style={{
-                  position: 'absolute',
-                  left: x - wallData.corner.width / 2,
-                  top: y - WALL_H,
-                  width: wallData.corner.width,
-                  height: wallData.corner.height,
-                  zIndex: 0,
-                }}
-                draggable={false}
-                alt=""
-              />
-            );
-          })()}
+              {/* Corner column */}
+              {(() => {
+                const { x, y } = isoToScreen(0, 0, originX, originY);
+                return (
+                  <img
+                    src={wallData.corner.url}
+                    className="wall-tile"
+                    style={{
+                      position: 'absolute',
+                      left: x - wallData.corner.width / 2,
+                      top: y - WALL_H,
+                      width: wallData.corner.width,
+                      height: wallData.corner.height,
+                      zIndex: 0,
+                    }}
+                    draggable={false}
+                    alt=""
+                  />
+                );
+              })()}
+            </>
+          )}
 
           {/* Floor tiles */}
           {floorTiles.map(({ gx, gy, x, y }) => (
@@ -334,7 +349,7 @@ export default function Room() {
             />
           ))}
 
-          {/* Lighting overlay — glow from light-emitting furniture */}
+          {/* Lighting overlay */}
           {floorTiles.map(({ gx, gy, x, y }) => {
             const light = lightMap.get(`${gx},${gy}`);
             if (!light) return null;
@@ -385,15 +400,17 @@ export default function Room() {
               originX={originX}
               originY={originY}
               zoom={zoom}
+              roomGridW={ROOM_GRID_W}
+              roomGridH={ROOM_GRID_H}
+              roomMask={mask}
             />
           ))}
 
           {/* Standing avatars for non-seated participants */}
           {Object.values(participants).map((p) => {
-            // Skip participants who are sitting (they render via SeatMarker)
             if (p.seatFurnitureId) return null;
-            // Skip if no grid position
             if (p.gridX == null || p.gridY == null) return null;
+            if (!isInMask(p.gridX, p.gridY, mask)) return null;
             const { x, y } = isoToScreen(p.gridX, p.gridY, originX, originY);
             const depth = getDepth(p.gridX, p.gridY);
             return (

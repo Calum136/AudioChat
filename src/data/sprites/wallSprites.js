@@ -220,4 +220,26 @@ for (const [theme, palette] of Object.entries(WALL_PALETTES)) {
   };
 }
 
+// Cache for dynamically-sized wall sprites
+const _wallCache = new Map();
+
+/**
+ * Get wall sprites for a given theme and grid width.
+ * Uses cached default WALL_SPRITES for size 8, generates on demand for other sizes.
+ */
+export function getWallSprites(theme, gridW) {
+  if (gridW === 8 && WALL_SPRITES[theme]) return WALL_SPRITES[theme];
+  const key = `${theme}-${gridW}`;
+  if (_wallCache.has(key)) return _wallCache.get(key);
+  const palette = WALL_PALETTES[theme];
+  if (!palette) return null;
+  const sprites = {
+    left: makeFullLeftWall(gridW, palette),
+    right: makeFullRightWall(gridW, palette),
+    corner: makeCorner(palette),
+  };
+  _wallCache.set(key, sprites);
+  return sprites;
+}
+
 export { WALL_H, TILE_HALF_H, HALF_TILE, GRID_SIZE };

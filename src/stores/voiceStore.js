@@ -24,6 +24,7 @@ export const useVoiceStore = create((set, get) => ({
   // Connection state
   room: null,
   connectionState: 'disconnected', // 'disconnected' | 'connecting' | 'connected'
+  connectionError: null, // user-readable error string or null
 
   // Local audio
   isMuted: false,
@@ -36,15 +37,25 @@ export const useVoiceStore = create((set, get) => ({
   _audioContext: null,
   _sourceNodes: new Map(), // identity -> { source, panner, gain }
 
+  // Mic input gain processing
+  _micGainNode: null,
+  _micGainUnsub: null, // unsubscribe from audioSettingsStore
+
+  // Retry state
+  _retryCount: 0,
+  _retryTimer: null,
+  _lastRoomName: null,
+  _lastIdentity: null,
+
   connect: async (roomName, identity) => {
     const state = get();
     if (state.connectionState !== 'disconnected') return;
 
-    set({ connectionState: 'connecting' });
+    set({ connectionState: 'connecting', connectionError: null, _lastRoomName: roomName, _lastIdentity: identity });
 
     try {
       const lkRoom = new Room({
-        audioCaptureDefaults: { autoGainControl: true, noiseSuppression: true },
+        audioCaptureDefaults: { autoGainControl: true, noiseSuppression: true, echoCancellation: true },
         publishDefaults: { audioBitrate: 24000 },
       });
 
@@ -81,6 +92,7 @@ export const useVoiceStore = create((set, get) => ({
       });
 
       lkRoom.on(RoomEvent.Disconnected, () => {
+        const { _lastRoomName, _lastIdentity, connectionState } = get();
         get()._cleanup();
         set({
           room: null,
@@ -89,6 +101,10 @@ export const useVoiceStore = create((set, get) => ({
           isDeafened: false,
           speakingMap: {},
         });
+        // Unexpected disconnect — attempt reconnect
+        if (connectionState === 'connected' && _lastRoomName) {
+          get()._scheduleRetry();
+        }
       });
 
       // Connect to LiveKit room
@@ -97,19 +113,85 @@ export const useVoiceStore = create((set, get) => ({
       // Try to enable mic — may fail if permission denied (e.g. preview browser)
       try {
         await lkRoom.localParticipant.setMicrophoneEnabled(true);
+        get()._setupMicGain(lkRoom);
       } catch (micErr) {
         console.warn('[voice] Mic access denied — connected without mic:', micErr.name);
         set({ isMuted: true });
       }
 
-      set({ room: lkRoom, connectionState: 'connected' });
+      set({ room: lkRoom, connectionState: 'connected', connectionError: null, _retryCount: 0 });
     } catch (err) {
       console.error('[voice] Connection failed:', err);
-      set({ connectionState: 'disconnected', room: null });
+      set({ connectionState: 'disconnected', room: null, connectionError: err.message || 'Connection failed' });
+      get()._scheduleRetry();
+    }
+  },
+
+  _scheduleRetry: () => {
+    const { _retryCount, _lastRoomName, _lastIdentity } = get();
+    if (_retryCount >= 3 || !_lastRoomName) {
+      if (_retryCount >= 3) {
+        set({ connectionError: 'Voice connection failed after 3 attempts' });
+      }
+      return;
+    }
+    const delay = Math.pow(2, _retryCount) * 1000; // 1s, 2s, 4s
+    console.log(`[voice] Retrying in ${delay}ms (attempt ${_retryCount + 1}/3)`);
+    const timer = setTimeout(() => {
+      set({ _retryTimer: null, _retryCount: get()._retryCount + 1 });
+      get().connect(_lastRoomName, _lastIdentity);
+    }, delay);
+    set({ _retryTimer: timer });
+  },
+
+  _cancelRetry: () => {
+    const timer = get()._retryTimer;
+    if (timer) clearTimeout(timer);
+    set({ _retryTimer: null, _retryCount: 0 });
+  },
+
+  // Set up mic input gain processing — routes mic through a GainNode controlled by audioSettingsStore
+  _setupMicGain: (lkRoom) => {
+    try {
+      const micPub = lkRoom.localParticipant.getTrackPublication(Track.Source.Microphone);
+      if (!micPub?.track?.mediaStreamTrack) return;
+
+      const ctx = get()._getAudioContext();
+      const source = ctx.createMediaStreamSource(new MediaStream([micPub.track.mediaStreamTrack]));
+      const gainNode = ctx.createGain();
+      const dest = ctx.createMediaStreamDestination();
+
+      gainNode.gain.value = useAudioSettingsStore.getState().micInputVolume;
+      source.connect(gainNode).connect(dest);
+
+      // Replace the published track with the gain-processed track
+      const processedTrack = dest.stream.getAudioTracks()[0];
+      micPub.track.mediaStreamTrack.enabled = true;
+      lkRoom.localParticipant.publishTrack(processedTrack, {
+        source: Track.Source.Microphone,
+        name: 'microphone',
+      }).catch(() => {
+        // If re-publish fails, mic still works without gain control
+        console.warn('[voice] Could not apply mic gain processing');
+      });
+
+      // Subscribe to mic volume changes
+      let prevVol = useAudioSettingsStore.getState().micInputVolume;
+      const unsub = useAudioSettingsStore.subscribe((s) => {
+        if (s.micInputVolume !== prevVol) {
+          prevVol = s.micInputVolume;
+          gainNode.gain.value = s.micInputVolume;
+        }
+      });
+
+      set({ _micGainNode: { source, gain: gainNode, dest }, _micGainUnsub: unsub });
+    } catch (err) {
+      console.warn('[voice] Mic gain setup failed:', err);
     }
   },
 
   disconnect: async () => {
+    get()._cancelRetry();
     const { room } = get();
     if (room) {
       await room.disconnect();
@@ -118,9 +200,12 @@ export const useVoiceStore = create((set, get) => ({
     set({
       room: null,
       connectionState: 'disconnected',
+      connectionError: null,
       isMuted: false,
       isDeafened: false,
       speakingMap: {},
+      _lastRoomName: null,
+      _lastIdentity: null,
     });
   },
 
@@ -220,6 +305,18 @@ export const useVoiceStore = create((set, get) => ({
   },
 
   _cleanup: () => {
+    // Clean up mic gain processing
+    const micGain = get()._micGainNode;
+    if (micGain) {
+      micGain.source.disconnect();
+      micGain.gain.disconnect();
+      micGain.dest.disconnect();
+    }
+    const micUnsub = get()._micGainUnsub;
+    if (micUnsub) micUnsub();
+    set({ _micGainNode: null, _micGainUnsub: null });
+
+    // Clean up spatial audio nodes
     const sourceNodes = get()._sourceNodes;
     for (const [identity] of sourceNodes) {
       get()._detachSpatialAudio(identity);

@@ -5,13 +5,12 @@ import { FURNITURE_CATALOG } from '../data/furniture';
 import { FURNITURE_SPRITES } from '../data/sprites/furnitureSprites';
 import { renderPixelGrid } from '../lib/spriteRenderer';
 import { isoToScreen, screenToIso, snapToGrid, isInBounds, getDepth, TILE_W, TILE_H } from '../lib/isoGrid';
+import { isInMask } from '../data/roomShapes';
 import SeatMarker from './SeatMarker';
 
-const ROOM_GRID_W = 8;
-const ROOM_GRID_H = 8;
 const SPRITE_SCALE = 3; // Scale up pixel art 3x for visibility
 
-export default function FurnitureItem({ id, type, gridX, gridY, flipped, originX, originY, zoom }) {
+export default function FurnitureItem({ id, type, gridX, gridY, flipped, originX, originY, zoom, roomGridW = 8, roomGridH = 8, roomMask = null }) {
   const isEditing = useRoomStore((s) => s.isEditing);
   const moveFurniture = useRoomStore((s) => s.moveFurniture);
   const removeFurniture = useRoomStore((s) => s.removeFurniture);
@@ -112,10 +111,17 @@ export default function FurnitureItem({ id, type, gridX, gridY, flipped, originX
       const raw = screenToIso(sx, sy, originX, originY);
       const { gx, gy } = snapToGrid(raw.gx, raw.gy);
 
-      if (isInBounds(gx, gy, ROOM_GRID_W, ROOM_GRID_H) &&
-          gx + catalog.tileW <= ROOM_GRID_W &&
-          gy + catalog.tileH <= ROOM_GRID_H) {
-        if (gx !== gridX || gy !== gridY) {
+      if (isInBounds(gx, gy, roomGridW, roomGridH) &&
+          gx + catalog.tileW <= roomGridW &&
+          gy + catalog.tileH <= roomGridH) {
+        // Check all cells are within mask
+        let allValid = true;
+        for (let dx = 0; dx < catalog.tileW && allValid; dx++) {
+          for (let dy = 0; dy < catalog.tileH && allValid; dy++) {
+            if (!isInMask(gx + dx, gy + dy, roomMask)) allValid = false;
+          }
+        }
+        if (allValid && (gx !== gridX || gy !== gridY)) {
           moveFurniture(id, gx, gy);
         }
       }
@@ -129,7 +135,7 @@ export default function FurnitureItem({ id, type, gridX, gridY, flipped, originX
 
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
-  }, [isEditing, id, gridX, gridY, originX, originY, moveFurniture, catalog.tileW, catalog.tileH, zoom]);
+  }, [isEditing, id, gridX, gridY, originX, originY, moveFurniture, catalog.tileW, catalog.tileH, zoom, roomGridW, roomGridH, roomMask]);
 
   const handleContextMenu = useCallback((e) => {
     if (!isEditing) return;
