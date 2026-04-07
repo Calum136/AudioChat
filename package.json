@@ -1,7 +1,7 @@
 {
   "name": "sidequest",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Cozy multiplayer rooms with voice chat",
   "author": "Calum",
   "type": "module",
@@ -18,7 +18,7 @@
     "appId": "com.sidequest.app",
     "productName": "Sidequest",
     "directories": {
-      "output": "dist-electron"
+      "output": "release"
     },
     "files": [
       "dist/**/*",
