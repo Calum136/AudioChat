@@ -1,7 +1,7 @@
 {
   "name": "sidequest",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Cozy multiplayer rooms with voice chat",
   "author": "Calum",
   "type": "module",
@@ -18,7 +18,7 @@
     "appId": "com.sidequest.app",
     "productName": "Sidequest",
     "directories": {
-      "output": "release"
+      "output": "release-v3"
     },
     "files": [
       "dist/**/*",
@@ -26,7 +26,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "electron/icon.png",
+      "icon": "electron/icon.ico",
       "signAndEditExecutable": false
     },
     "mac": {
@@ -35,12 +35,20 @@
     },
     "nsis": {
       "oneClick": true,
-      "allowToChangeInstallationDirectory": false
+      "allowToChangeInstallationDirectory": false,
+      "installerIcon": "electron/icon.ico",
+      "uninstallerIcon": "electron/icon.ico"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "Calum136",
+      "repo": "AudioChat"
     }
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.2",
     "dotenv": "^17.3.1",
+    "electron-updater": "^6.8.3",
     "express": "^5.2.1",
     "livekit-client": "^2.17.3",
     "livekit-server-sdk": "^2.15.0",

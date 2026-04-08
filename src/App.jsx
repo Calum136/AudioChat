@@ -4,6 +4,7 @@ import { useRoomStore } from './stores/roomStore';
 import { useFriendStore } from './stores/friendStore';
 import Landing from './components/Landing';
 import AppShell from './components/AppShell';
+import UpdateNotification from './components/UpdateNotification';
 
 export default function App() {
   const view = useRoomStore((s) => s.view);
@@ -43,6 +44,15 @@ export default function App() {
     }
   }, [roomId, user]);
 
+  // Refresh presence when Electron window regains focus
+  useEffect(() => {
+    if (!window.electronAPI?.isElectron) return;
+    const handleFocus = () => {
+      if (user) updatePresenceRoom(roomId);
+    };
+    window.electronAPI.onWindowFocus(handleFocus);
+  }, [user, roomId, updatePresenceRoom]);
+
   if (loading) {
     return (
       <div className="app">
@@ -57,6 +67,7 @@ export default function App() {
   return (
     <div className="app">
       {view === 'landing' ? <Landing /> : <AppShell />}
+      {window.electronAPI?.isElectron && <UpdateNotification />}
     </div>
   );
 }

@@ -23,8 +23,9 @@ export const useRoomStore = create((set, get) => ({
   myRooms: [],
   myRoomsLoading: false,
 
-  // Edit mode toggle (owner only)
+  // Edit mode toggle (owner or admin)
   isEditing: false,
+  isAdmin: false,
   toggleEditing: () => set((s) => ({ isEditing: !s.isEditing, selectedFurnitureType: null })),
 
   // Click-to-place: selected furniture type from palette
@@ -58,9 +59,26 @@ export const useRoomStore = create((set, get) => ({
 
   deleteRoom: async (roomId, userId) => {
     await roomService.deleteRoom(roomId);
-    // Refresh room list
     const rooms = await roomService.getUserRooms(userId);
     set({ myRooms: rooms });
+  },
+
+  leaveRoomMembership: async (roomId, userId) => {
+    await roomService.leaveRoomMembership(roomId, userId);
+    const rooms = await roomService.getUserRooms(userId);
+    set({ myRooms: rooms });
+  },
+
+  promoteAdmin: async (targetUserId) => {
+    const { roomId } = get();
+    if (!roomId) return;
+    await roomService.setRoomMemberRole(roomId, targetUserId, 'admin');
+  },
+
+  demoteAdmin: async (targetUserId) => {
+    const { roomId } = get();
+    if (!roomId) return;
+    await roomService.setRoomMemberRole(roomId, targetUserId, 'member');
   },
 
   createRoom: async (name, user) => {
@@ -93,6 +111,7 @@ export const useRoomStore = create((set, get) => ({
       furniture: [],
       participants: {},
       isEditing: false,
+      isAdmin: false,
       _channel: null,
       myRooms: [],
       knockRequests: [],
@@ -234,6 +253,19 @@ export const useRoomStore = create((set, get) => ({
       throw e;
     }
 
+    // Save membership (so room appears in "My Rooms" for non-owners)
+    const isOwner = room.owner_id === user.id;
+    if (!isOwner) {
+      roomService.joinRoomMembership(room.id, user.id);
+    }
+
+    // Fetch admin role
+    let isAdmin = false;
+    if (!isOwner) {
+      const role = await roomService.getRoomMemberRole(room.id, user.id);
+      isAdmin = role === 'admin';
+    }
+
     set({
       view: 'room',
       roomId: room.id,
@@ -242,6 +274,7 @@ export const useRoomStore = create((set, get) => ({
       ownerId: room.owner_id,
       theme: room.theme || 'gaming-den',
       furniture,
+      isAdmin,
       _channel: channel,
     });
   },

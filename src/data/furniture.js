@@ -212,6 +212,19 @@ export const FURNITURE_CATALOG = {
     animated: true,
     frameDelay: 1200,
   },
+  barcounter: {
+    name: 'Bar Counter',
+    icon: 'table',
+    sprite: 'barcounter',
+    tileW: 3,
+    tileH: 1,
+    category: 'decor',
+    seats: [
+      { offsetX: -40, offsetY: 25, label: 'Sit at bar', type: 'sit' },
+      { offsetX: 0, offsetY: 25, label: 'Sit at bar', type: 'sit' },
+      { offsetX: 40, offsetY: 25, label: 'Sit at bar', type: 'sit' },
+    ],
+  },
   listencouch: {
     name: 'Listener Couch',
     icon: 'couch',

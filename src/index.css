@@ -1785,6 +1785,19 @@ body {
   color: var(--text-muted);
 }
 
+.owner-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
 .friend-seat {
   font-size: 0.92rem;
   color: var(--text-muted);
@@ -2825,12 +2838,122 @@ body {
   overflow-y: auto;
 }
 
+.friends-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
 .friends-title {
   font-size: 1.05rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
+  flex: 1;
+}
+
+.friends-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.friends-back-btn:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.friends-more-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.friends-more-btn:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.friends-more-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  font-size: 0.65rem;
+  min-width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  background: var(--rose);
+  color: white;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.friends-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 160px;
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.friends-dropdown button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.friends-dropdown button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.friends-badge.dim {
+  background: var(--text-muted);
+  opacity: 0.5;
+}
+
+.friends-subview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .friends-search-input {
@@ -2889,41 +3012,20 @@ body {
   font-weight: 700;
 }
 
-.friends-tabs {
-  display: flex;
-  border-bottom: 1px solid var(--glass-border);
-}
-
-.friends-tab {
-  flex: 1;
-  padding: 8px 0;
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: color 0.2s;
-  position: relative;
-}
-
-.friends-tab:hover {
-  color: var(--text-secondary);
-}
-
-.friends-tab.active {
-  color: var(--teal);
-}
-
-.friends-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 20%;
-  right: 20%;
-  height: 2px;
+/* Invite button */
+.friend-action-btn.invite {
+  font-size: 0.78rem;
+  padding: 3px 8px;
   background: var(--teal);
-  border-radius: 2px;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.friend-action-btn.invite:hover {
+  filter: brightness(1.15);
 }
 
 .friends-list {
@@ -3354,17 +3456,78 @@ body {
 
 .electron .dash-header button,
 .electron .dash-header input,
-.electron .dash-header a {
+.electron .dash-header a,
+.electron .dash-header select {
   -webkit-app-region: no-drag;
 }
 
-/* Landing page — make top area draggable */
-.electron .landing-hero {
+/* Electron drag bar — always-visible drag zone at top of landing page */
+.electron .landing::before {
+  content: '';
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 140px; /* leave space for window controls */
+  height: 36px;
   -webkit-app-region: drag;
+  z-index: 9000;
 }
 
-.electron .landing-hero button,
-.electron .landing-hero input,
-.electron .landing-hero a {
+/* Ensure all interactive elements inside app-header are not draggable */
+.electron .app-header select,
+.electron .app-header .voice-badge,
+.electron .app-header .join-code {
   -webkit-app-region: no-drag;
+}
+
+/* ==============================================
+   Update Notification Toast
+   ============================================== */
+
+.update-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  z-index: 10000;
+  animation: fadeUp 0.3s ease-out;
+}
+
+.update-restart-btn {
+  padding: 0.35rem 0.75rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.update-restart-btn:hover {
+  filter: brightness(1.15);
+}
+
+.update-dismiss-btn {
+  padding: 0.35rem 0.5rem;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.update-dismiss-btn:hover {
+  color: var(--text-primary);
 }

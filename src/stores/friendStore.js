@@ -13,6 +13,7 @@ export const useFriendStore = create((set, get) => ({
   loading: false,
 
   _globalChannel: null,
+  _presenceUserId: null,
 
   // ======== Load all friend data ========
 
@@ -169,16 +170,14 @@ export const useFriendStore = create((set, get) => ({
       }
     });
 
-    set({ _globalChannel: channel });
+    set({ _globalChannel: channel, _presenceUserId: user.id });
   },
 
   updatePresenceRoom: async (roomId) => {
     const channel = get()._globalChannel;
-    if (!channel) return;
-    await channel.track({
-      userId: channel.presenceState()[Object.keys(channel.presenceState())[0]]?.[0]?.userId,
-      roomId,
-    });
+    const userId = get()._presenceUserId;
+    if (!channel || !userId) return;
+    await channel.track({ userId, roomId });
   },
 
   disconnectGlobalPresence: () => {

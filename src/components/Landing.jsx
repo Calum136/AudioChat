@@ -118,7 +118,7 @@ function getRoomPreview(theme) {
   return url;
 }
 
-function RoomCard({ room, onEnter, onRequestDelete, index }) {
+function RoomCard({ room, onEnter, onRequestDelete, onRequestLeave, userId, index }) {
   const [copied, setCopied] = useState(false);
   const accent = THEME_ACCENTS[room.theme] || THEME_ACCENTS['gaming-den'];
   const label = THEME_LABELS[room.theme] || 'Room';
@@ -152,16 +152,29 @@ function RoomCard({ room, onEnter, onRequestDelete, index }) {
           {copied ? 'Copied!' : room.join_code}
         </span>
       </div>
-      <button
-        className="room-tile-delete"
-        onClick={(e) => {
-          e.stopPropagation();
-          onRequestDelete(room);
-        }}
-        title="Delete room"
-      >
-        {'\u00D7'}
-      </button>
+      {room.owner_id === userId ? (
+        <button
+          className="room-tile-delete"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRequestDelete(room);
+          }}
+          title="Delete room"
+        >
+          {'\u00D7'}
+        </button>
+      ) : (
+        <button
+          className="room-tile-delete room-tile-leave"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRequestLeave(room);
+          }}
+          title="Leave room"
+        >
+          {'\u00D7'}
+        </button>
+      )}
     </div>
   );
 }
@@ -184,6 +197,7 @@ export default function Landing() {
   const joinRoom = useRoomStore((s) => s.joinRoom);
   const rejoinRoom = useRoomStore((s) => s.rejoinRoom);
   const deleteRoom = useRoomStore((s) => s.deleteRoom);
+  const leaveRoomMembership = useRoomStore((s) => s.leaveRoomMembership);
   const loadMyRooms = useRoomStore((s) => s.loadMyRooms);
   const myRooms = useRoomStore((s) => s.myRooms);
   const myRoomsLoading = useRoomStore((s) => s.myRoomsLoading);
@@ -194,6 +208,7 @@ export default function Landing() {
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState('create');
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [leaveTarget, setLeaveTarget] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
@@ -245,6 +260,16 @@ export default function Landing() {
       setError(e.message);
     }
     setDeleteTarget(null);
+  };
+
+  const handleConfirmLeave = async () => {
+    if (!leaveTarget) return;
+    try {
+      await leaveRoomMembership(leaveTarget.id, user.id);
+    } catch (e) {
+      setError(e.message);
+    }
+    setLeaveTarget(null);
   };
 
   // Unauthenticated: splash + auth form
@@ -380,8 +405,10 @@ export default function Landing() {
                     key={room.id}
                     room={room}
                     index={i}
+                    userId={user.id}
                     onEnter={handleRejoin}
                     onRequestDelete={setDeleteTarget}
+                    onRequestLeave={setLeaveTarget}
                   />
                 ))}
               </div>
@@ -409,6 +436,16 @@ export default function Landing() {
         variant="danger"
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={!!leaveTarget}
+        title={`Leave "${leaveTarget?.name}"?`}
+        message="This room will be removed from your list. You can rejoin with the code."
+        confirmLabel="Leave"
+        variant="danger"
+        onConfirm={handleConfirmLeave}
+        onCancel={() => setLeaveTarget(null)}
       />
 
       {showSettings && <SettingsPage onClose={() => setShowSettings(false)} />}

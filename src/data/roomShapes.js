@@ -34,21 +34,11 @@ export const ROOM_SHAPES = {
     hasWalls: false,
   },
 
-  // Fantasy Tavern: 10x8 L-shape — main hall with bar counter section
+  // Fantasy Tavern: 10x8 full rectangle — open hall with bar counter furniture
   'fantasy-tavern': {
     gridW: 10,
     gridH: 8,
-    mask: [
-      //  0  1  2  3  4  5  6  7  8  9
-      [1, 1, 1, 1, 1, 1, 0, 0, 0, 0], // gy=0 (bar area, narrower)
-      [1, 1, 1, 1, 1, 1, 0, 0, 0, 0], // gy=1
-      [1, 1, 1, 1, 1, 1, 0, 0, 0, 0], // gy=2
-      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // gy=3 (opens to main hall)
-      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // gy=4
-      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // gy=5
-      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // gy=6
-      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // gy=7
-    ],
+    mask: null, // full rectangle
     hasWalls: true,
   },
 

@@ -1,7 +1,9 @@
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell, ipcMain } = require('electron');
 const path = require('path');
 
 const isDev = !app.isPackaged;
+
+let mainWindow = null;
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -10,12 +12,13 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     title: 'Sidequest',
-    icon: path.join(__dirname, 'icon.png'),
+    icon: path.join(__dirname, process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
     backgroundColor: '#0a0a14',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
+      backgroundThrottling: false,
     },
     // Frameless with custom titlebar vibes
     titleBarStyle: 'hidden',
@@ -33,17 +36,62 @@ function createWindow() {
     return { action: 'deny' };
   });
 
+  // Forward focus/blur to renderer for presence reconnection
+  win.on('focus', () => win.webContents.send('window-focus'));
+  win.on('blur', () => win.webContents.send('window-blur'));
+
   if (isDev) {
     win.loadURL('http://localhost:5173');
   } else {
     win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
   }
 
+  mainWindow = win;
   return win;
 }
 
+// ======== Auto-Update ========
+
+function setupAutoUpdater() {
+  if (isDev) return;
+
+  const { autoUpdater } = require('electron-updater');
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on('update-available', (info) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('update-available', {
+        version: info.version,
+      });
+    }
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('update-downloaded', {
+        version: info.version,
+      });
+    }
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.error('[auto-updater] Error:', err.message);
+  });
+
+  ipcMain.on('restart-app', () => {
+    autoUpdater.quitAndInstall();
+  });
+
+  autoUpdater.checkForUpdatesAndNotify();
+}
+
+// ======== App Lifecycle ========
+
 app.whenReady().then(() => {
   createWindow();
+  setupAutoUpdater();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

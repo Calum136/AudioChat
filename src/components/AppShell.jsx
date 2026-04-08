@@ -19,6 +19,7 @@ export default function AppShell() {
   const leaveRoom = useRoomStore((s) => s.leaveRoom);
   const participants = useRoomStore((s) => s.participants);
 
+  const isAdmin = useRoomStore((s) => s.isAdmin);
   const knockRequests = useRoomStore((s) => s.knockRequests);
   const dismissKnock = useRoomStore((s) => s.dismissKnock);
   const connectionState = useVoiceStore((s) => s.connectionState);
@@ -29,6 +30,7 @@ export default function AppShell() {
 
   const participantCount = Object.keys(participants).length;
   const isOwner = user && ownerId === user.id;
+  const canEdit = isOwner || isAdmin;
   const me = user ? participants[user.id] : null;
   const seatType = me?.seatFurnitureId ? (me?.seatType || 'sit') : null;
   const isListenOrAfk = seatType === 'listen' || seatType === 'afk';
@@ -84,8 +86,8 @@ export default function AppShell() {
             </>
           )}
           <MusicPlayer />
-          {isOwner && <ThemePicker />}
-          {isOwner && (
+          {canEdit && <ThemePicker />}
+          {canEdit && (
             <button
               className={`edit-btn ${isEditing ? 'active' : ''}`}
               onClick={toggleEditing}
@@ -113,7 +115,7 @@ export default function AppShell() {
         </div>
       )}
       <div className="app-body">
-        {isOwner && <Palette />}
+        {canEdit && <Palette />}
         <Room />
         <SocialPanel />
       </div>
