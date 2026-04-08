@@ -2,83 +2,69 @@
 
 **The place your party hangs out between matches.**
 
-Sidequest is a gamer-first social voice app built around a customizable hangout base. Instead of abstract voice channels, your squad gets a room — place furniture, pick your seat, and hang out.
+Sidequest is a gamer-first social voice app built around customizable hangout rooms. Instead of abstract voice channels, your squad gets a room — place furniture, pick your seat, and hang out with spatial voice chat.
 
-## Concept
+## Download
 
-- Voice call seats are determined by furniture in the room
-- A couch = 2 seats. A bean bag = 1 seat. A bar stool = 1 seat.
-- Joining voice means entering a room and choosing where to sit
-- Rooms are customizable with themes, furniture, and decor
-- Built for friend groups of 3–8, not giant communities
+**[Sidequest v0.3.0 — Windows Installer](https://github.com/Calum136/AudioChat/releases/tag/v0.3.0)**
 
-## Running the Prototype
+The app auto-updates after install, so you'll always get the latest version.
+
+## Features
+
+- **Isometric pixel art rooms** — Habbo Hotel-inspired with 4 themed layouts (Gaming Den, Sci-Fi Lounge, Fantasy Tavern, Retro Arcade)
+- **Spatial voice chat** — powered by LiveKit, with positional audio based on seating
+- **Furniture placement** — drag-and-drop furniture from a palette in edit mode
+- **Seat-based voice** — couches, barstools, bean bags, gaming chairs all create voice seats
+- **Friends system** — add friends, see who's online, knock to join their room
+- **Room persistence** — rooms you create or join are saved for easy rejoin
+- **Admin roles** — room owners can promote admins who can also edit the room
+- **Pixel avatars** — customizable avatar with color picker for hair, skin, shirt, pants
+- **Listen-only & AFK seats** — special furniture types for passive listening or going AFK
+- **Desktop app** — Electron wrapper with auto-update via GitHub Releases
+
+## Running Locally
 
 ```bash
 npm install
-npm run dev
+npm run dev          # Web (Vite dev server)
+npm run electron:dev # Desktop (Electron + Vite + backend)
 ```
 
-Open [http://localhost:5173](http://localhost:5173)
+Open [http://localhost:5173](http://localhost:5173) for the web version.
 
-## What This Prototype Shows
+### Environment Variables
 
-- **Landing page** — introduces the concept and brand
-- **Room view** — the core product: a visual room with placed furniture
-- **Furniture placement** — toggle edit mode, drag furniture from the palette
-- **Seat markers** — each seating item shows available seats (teal dots)
-- **Friend presence** — mock friends seated in the room
-- **Seat selection** — click an available seat to sit down, click again to stand
-- **Room themes** — switch between 4 visual themes (Gaming Den, Sci-Fi, Tavern, Arcade)
-- **3-panel layout** — palette (edit mode), room (center), friends (right)
+Create a `.env` file with:
+
+```
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_LIVEKIT_URL=your_livekit_url
+LIVEKIT_API_KEY=your_livekit_api_key
+LIVEKIT_API_SECRET=your_livekit_api_secret
+```
 
 ## Tech Stack
 
 | Choice | Why |
 |--------|-----|
-| React 19 + Vite | Fast modern dev with HMR |
-| Zustand | Minimal state — no boilerplate |
-| Custom CSS | Full control for spatial room UI |
-| Mocked data | No backend needed to demo the concept |
+| React 19 + Vite 6 | Fast modern dev with HMR |
+| Zustand | Minimal state management |
+| Custom CSS | Full control for spatial room UI, no Tailwind |
+| Supabase | Auth, Postgres DB, Realtime (Presence + Broadcast) |
+| LiveKit | WebRTC SFU for voice chat with spatial audio |
+| Electron | Desktop app with auto-update |
+| Pixel art sprites | Canvas-rendered from palette-indexed grids |
 
-## Project Structure
+## Building the Desktop App
 
+```bash
+npm run electron:build
 ```
-src/
-├── main.jsx               Entry point
-├── App.jsx                 View routing (landing / room)
-├── index.css               All styles — dark gamer aesthetic
-├── stores/
-│   └── roomStore.js        Zustand store (room, furniture, seating)
-├── data/
-│   ├── furniture.js        Furniture catalog (types, sizes, seats)
-│   ├── themes.js           Room theme definitions
-│   └── friends.js          Mock friend data
-└── components/
-    ├── Landing.jsx          Landing / intro page
-    ├── AppShell.jsx         App layout (header + 3-panel body)
-    ├── Room.jsx             Room view (drop zone, furniture rendering)
-    ├── FurnitureItem.jsx    Draggable furniture piece with seats
-    ├── SeatMarker.jsx       Seat indicator (available / occupied)
-    ├── Palette.jsx          Furniture palette (left panel, edit mode)
-    ├── FriendPanel.jsx      Friend list (right panel)
-    └── ThemePicker.jsx      Theme switcher
 
-docs/
-└── product-brief.md         Internal product brief
-
-server/                      Original AudioChat backend (preserved)
-```
+Output: `release-v3/Sidequest Setup X.X.X.exe` (Windows NSIS installer)
 
 ## Docs
 
 - [Product Brief](docs/product-brief.md) — problem, audience, core mechanic, MVP scope
-
-## Next Steps (Not In Prototype)
-
-- Real voice integration (LiveKit / mediasoup)
-- User auth and persistence (Supabase / Postgres)
-- Multiplayer room sync (WebSocket state)
-- Furniture animations and interaction sounds
-- Mobile-responsive layout
-- Creator marketplace for furniture / themes
