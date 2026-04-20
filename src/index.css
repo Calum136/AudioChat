@@ -772,6 +772,17 @@ body {
   position: relative;
 }
 
+.room-tile-active {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #4ecdc4;
+  background: rgba(78, 205, 196, 0.12);
+  border: 1px solid rgba(78, 205, 196, 0.3);
+  border-radius: 10px;
+  padding: 1px 8px;
+  letter-spacing: 0.05em;
+}
+
 .room-tile-footer {
   display: flex;
   flex-direction: column;

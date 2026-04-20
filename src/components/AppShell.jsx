@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useRoomStore } from '../stores/roomStore';
 import { useVoiceStore } from '../stores/voiceStore';
@@ -8,8 +9,10 @@ import Palette from './Palette';
 import SocialPanel from './SocialPanel';
 import ThemePicker from './ThemePicker';
 import MusicPlayer from './MusicPlayer';
+import SettingsPage from './SettingsPage';
 
 export default function AppShell() {
+  const [showSettings, setShowSettings] = useState(false);
   const user = useAuthStore((s) => s.user);
   const roomName = useRoomStore((s) => s.roomName);
   const joinCode = useRoomStore((s) => s.joinCode);
@@ -86,6 +89,9 @@ export default function AppShell() {
             </>
           )}
           <MusicPlayer />
+          <button className="settings-btn" onClick={() => setShowSettings(true)} title="Settings">
+            <Icon name="settings" size={16} />
+          </button>
           {canEdit && <ThemePicker />}
           {canEdit && (
             <button
@@ -119,6 +125,7 @@ export default function AppShell() {
         <Room />
         <SocialPanel />
       </div>
+      {showSettings && <SettingsPage onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

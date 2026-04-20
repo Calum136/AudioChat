@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useRoomStore } from '../stores/roomStore';
+import { supabase } from '../lib/supabase';
 import AuthForm from './AuthForm';
 import ConfirmDialog from './ConfirmDialog';
 import FriendsPanel from './FriendsPanel';
@@ -118,7 +119,7 @@ function getRoomPreview(theme) {
   return url;
 }
 
-function RoomCard({ room, onEnter, onRequestDelete, onRequestLeave, userId, index }) {
+function RoomCard({ room, onEnter, onRequestDelete, onRequestLeave, userId, index, activeCount }) {
   const [copied, setCopied] = useState(false);
   const accent = THEME_ACCENTS[room.theme] || THEME_ACCENTS['gaming-den'];
   const label = THEME_LABELS[room.theme] || 'Room';
@@ -142,6 +143,9 @@ function RoomCard({ room, onEnter, onRequestDelete, onRequestLeave, userId, inde
     >
       <img className="room-tile-preview" src={getRoomPreview(room.theme)} alt={label} />
       <span className="room-tile-name">{room.name}</span>
+      {activeCount > 0 && (
+        <span className="room-tile-active">{activeCount} active</span>
+      )}
       <div className="room-tile-footer">
         <span className="room-tile-label">{label}</span>
         <span
@@ -206,16 +210,42 @@ export default function Landing() {
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState('create');
+  const [mode, setMode] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [leaveTarget, setLeaveTarget] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [roomCounts, setRoomCounts] = useState({});
+  const presenceChannelsRef = useRef([]);
 
   useEffect(() => {
     if (user) {
       loadMyRooms(user.id);
     }
   }, [user, loadMyRooms]);
+
+  // Subscribe to each room's presence channel to track active player counts
+  useEffect(() => {
+    const channels = presenceChannelsRef.current;
+    channels.forEach((ch) => supabase.removeChannel(ch));
+    presenceChannelsRef.current = [];
+
+    if (!myRooms.length) return;
+
+    const newChannels = myRooms.map((room) => {
+      const ch = supabase.channel(`room:${room.id}`, { config: { presence: { key: '' } } });
+      ch.on('presence', { event: 'sync' }, () => {
+        const count = Object.keys(ch.presenceState()).length;
+        setRoomCounts((prev) => ({ ...prev, [room.id]: count }));
+      });
+      ch.subscribe();
+      return ch;
+    });
+    presenceChannelsRef.current = newChannels;
+
+    return () => {
+      newChannels.forEach((ch) => supabase.removeChannel(ch));
+    };
+  }, [myRooms]);
 
   const handleCreate = async () => {
     if (!roomName.trim()) return;
@@ -336,58 +366,62 @@ export default function Landing() {
             <div className="quick-tabs">
               <button
                 className={`quick-tab ${mode === 'create' ? 'active' : ''}`}
-                onClick={() => setMode('create')}
+                onClick={() => setMode(mode === 'create' ? null : 'create')}
               >
                 + New Room
               </button>
               <button
                 className={`quick-tab ${mode === 'join' ? 'active' : ''}`}
-                onClick={() => setMode('join')}
+                onClick={() => setMode(mode === 'join' ? null : 'join')}
               >
                 Join Room
               </button>
             </div>
-            <div className="quick-action">
-              {mode === 'create' ? (
-                <div className="action-row">
-                  <input
-                    type="text"
-                    className="quick-input"
-                    placeholder="Name your room..."
-                    value={roomName}
-                    onChange={(e) => setRoomName(e.target.value)}
-                    maxLength={30}
-                    onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                  />
-                  <button
-                    className="action-btn"
-                    onClick={handleCreate}
-                    disabled={busy || !roomName.trim()}
-                  >
-                    {busy ? <div className="loading-spinner tiny" /> : 'Create'}
-                  </button>
-                </div>
-              ) : (
-                <div className="action-row">
-                  <input
-                    type="text"
-                    className="quick-input join-code-input"
-                    placeholder="Enter code..."
-                    value={joinCode}
-                    onChange={(e) => setJoinCode(e.target.value)}
-                    maxLength={8}
-                    onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-                  />
-                  <button
-                    className="action-btn"
-                    onClick={handleJoin}
-                    disabled={busy || !joinCode.trim()}
-                  >
-                    {busy ? <div className="loading-spinner tiny" /> : 'Join'}
-                  </button>
-                </div>
-              )}
-            </div>
+            {mode && (
+              <div className="quick-action">
+                {mode === 'create' ? (
+                  <div className="action-row">
+                    <input
+                      type="text"
+                      className="quick-input"
+                      placeholder="Name your room..."
+                      value={roomName}
+                      onChange={(e) => setRoomName(e.target.value)}
+                      maxLength={30}
+                      onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                      autoFocus
+                    />
+                    <button
+                      className="action-btn"
+                      onClick={handleCreate}
+                      disabled={busy || !roomName.trim()}
+                    >
+                      {busy ? <div className="loading-spinner tiny" /> : 'Create'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="action-row">
+                    <input
+                      type="text"
+                      className="quick-input join-code-input"
+                      placeholder="Enter code..."
+                      value={joinCode}
+                      onChange={(e) => setJoinCode(e.target.value)}
+                      maxLength={8}
+                      onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+                      autoFocus
+                    />
+                    <button
+                      className="action-btn"
+                      onClick={handleJoin}
+                      disabled={busy || !joinCode.trim()}
+                    >
+                      {busy ? <div className="loading-spinner tiny" /> : 'Join'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {error && <div className="dash-error fade-up">{error}</div>}
@@ -409,6 +443,7 @@ export default function Landing() {
                     onEnter={handleRejoin}
                     onRequestDelete={setDeleteTarget}
                     onRequestLeave={setLeaveTarget}
+                    activeCount={roomCounts[room.id] || 0}
                   />
                 ))}
               </div>
