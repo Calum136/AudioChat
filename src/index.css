@@ -4022,3 +4022,432 @@ body {
   background: rgba(232, 93, 117, 0.12);
   color: var(--rose);
 }
+
+/* ==============================================
+   Lobby Redesign
+   ============================================== */
+
+/* Header — single-row game launcher bar */
+.lobby-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.lobby-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.lobby-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #ffe066 0%, #ffb800 40%, #ff8c00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 12px rgba(255, 180, 0, 0.2));
+}
+
+.lobby-actions {
+  flex: 1;
+  display: flex;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.lobby-create-row,
+.lobby-join-row {
+  display: flex;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.lobby-input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 11px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.lobby-input:focus {
+  border-color: rgba(212, 175, 55, 0.45);
+}
+
+.lobby-input::placeholder {
+  color: var(--text-muted);
+}
+
+.lobby-input-code {
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.lobby-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 14px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.lobby-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.lobby-btn-create {
+  background: linear-gradient(135deg, #D4AF37 0%, #b8962e 100%);
+  color: #1a1000;
+}
+
+.lobby-btn-create:not(:disabled):hover {
+  background: linear-gradient(135deg, #e8c84a 0%, #c8a030 100%);
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.3);
+}
+
+.lobby-btn-join {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--glass-border);
+}
+
+.lobby-btn-join:not(:disabled):hover {
+  border-color: rgba(212, 175, 55, 0.4);
+  color: #D4AF37;
+}
+
+.lobby-user {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.lobby-icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.lobby-icon-btn:hover {
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--bg-hover);
+}
+
+/* Rooms area */
+.lobby-rooms-area {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.lobby-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lobby-section-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.lobby-section-count {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--bg-deep);
+  background: var(--text-muted);
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
+.lobby-room-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  overflow-y: auto;
+}
+
+/* Lobby room card */
+.lobby-room-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: cardEntrance 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  color: var(--text-primary);
+  font-family: inherit;
+  text-align: left;
+}
+
+.lobby-room-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, var(--tile-accent, var(--purple)), transparent 70%);
+  opacity: 0.07;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.lobby-room-card:hover {
+  border-color: color-mix(in srgb, var(--tile-accent, var(--purple)) 50%, transparent);
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    0 0 20px color-mix(in srgb, var(--tile-accent, var(--purple)) 15%, transparent);
+}
+
+.lobby-room-card:hover::before {
+  opacity: 0.13;
+}
+
+.lobby-card-preview {
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  image-rendering: pixelated;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+  display: block;
+}
+
+.lobby-card-preview.lobby-card-cover {
+  image-rendering: auto;
+}
+
+.lobby-room-card:hover .lobby-card-preview {
+  opacity: 1;
+}
+
+.lobby-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px 12px;
+}
+
+.lobby-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lobby-card-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--tile-accent, var(--purple));
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.lobby-card-active {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--teal);
+  letter-spacing: 0.02em;
+}
+
+.lobby-card-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.lobby-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  gap: 6px;
+}
+
+.lobby-card-code {
+  font-size: 0.72rem;
+  font-family: 'Courier New', monospace;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lobby-card-code:hover {
+  background: rgba(78, 205, 196, 0.12);
+  color: var(--teal);
+}
+
+.lobby-card-code.copied {
+  background: rgba(78, 205, 196, 0.18);
+  color: var(--teal);
+}
+
+.lobby-card-enter {
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #D4AF37 0%, #b8962e 100%);
+  color: #1a1000;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.lobby-card-enter:hover {
+  background: linear-gradient(135deg, #e8c84a 0%, #c8a030 100%);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.3);
+}
+
+.lobby-card-dismiss {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(232, 93, 117, 0.15);
+  color: var(--rose);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+  z-index: 1;
+}
+
+.lobby-room-card:hover .lobby-card-dismiss {
+  opacity: 1;
+}
+
+.lobby-card-dismiss:hover {
+  background: var(--rose);
+  color: white;
+}
+
+/* Empty state */
+.lobby-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.lobby-empty p {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.lobby-empty span {
+  font-size: 0.78rem;
+}
+
+.lobby-empty-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.lobby-empty-btn {
+  padding: 8px 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.lobby-empty-btn:first-child {
+  background: linear-gradient(135deg, #D4AF37 0%, #b8962e 100%);
+  color: #1a1000;
+  border: none;
+}
+
+.lobby-empty-btn:first-child:hover {
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.3);
+}
+
+.lobby-empty-btn.lobby-empty-btn-secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--glass-border);
+}
+
+.lobby-empty-btn.lobby-empty-btn-secondary:hover {
+  border-color: rgba(212, 175, 55, 0.35);
+  color: #D4AF37;
+}
+
+/* Electron drag region for lobby header */
+.electron .lobby-header {
+  padding-right: 140px;
+  -webkit-app-region: drag;
+}
+
+.electron .lobby-header button,
+.electron .lobby-header input,
+.electron .lobby-header a,
+.electron .lobby-header select {
+  -webkit-app-region: no-drag;
+}

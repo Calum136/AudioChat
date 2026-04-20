@@ -6,6 +6,7 @@ import AuthForm from './AuthForm';
 import ConfirmDialog from './ConfirmDialog';
 import FriendsPanel from './FriendsPanel';
 import SettingsPage from './SettingsPage';
+import Icon from './Icon';
 
 const THEME_ACCENTS = {
   'gaming-den': '#7c5cbf',
@@ -119,10 +120,11 @@ function getRoomPreview(theme) {
   return url;
 }
 
-function RoomCard({ room, onEnter, onRequestDelete, onRequestLeave, userId, index, activeCount }) {
+function LobbyRoomCard({ room, onEnter, onRequestDelete, onRequestLeave, userId, index, activeCount }) {
   const [copied, setCopied] = useState(false);
   const accent = THEME_ACCENTS[room.theme] || THEME_ACCENTS['gaming-den'];
   const label = THEME_LABELS[room.theme] || 'Room';
+  const isOwner = room.owner_id === userId;
 
   const handleCopyCode = (e) => {
     e.stopPropagation();
@@ -134,7 +136,7 @@ function RoomCard({ room, onEnter, onRequestDelete, onRequestLeave, userId, inde
 
   return (
     <div
-      className="room-tile"
+      className="lobby-room-card"
       style={{ '--tile-accent': accent, animationDelay: `${index * 60}ms` }}
       onClick={() => onEnter(room)}
       role="button"
@@ -142,47 +144,44 @@ function RoomCard({ room, onEnter, onRequestDelete, onRequestLeave, userId, inde
       onKeyDown={(e) => e.key === 'Enter' && onEnter(room)}
     >
       <img
-        className={`room-tile-preview${room.image_url ? ' room-tile-cover' : ''}`}
+        className={`lobby-card-preview${room.image_url ? ' lobby-card-cover' : ''}`}
         src={room.image_url || getRoomPreview(room.theme)}
         alt={label}
       />
-      <span className="room-tile-name">{room.name}</span>
-      {activeCount > 0 && (
-        <span className="room-tile-active">{activeCount} active</span>
-      )}
-      <div className="room-tile-footer">
-        <span className="room-tile-label">{label}</span>
-        <span
-          className={`room-tile-code ${copied ? 'copied' : ''}`}
-          onClick={handleCopyCode}
-          title="Click to copy code"
-        >
-          {copied ? 'Copied!' : room.join_code}
-        </span>
+      <div className="lobby-card-body">
+        <div className="lobby-card-meta">
+          <span className="lobby-card-label">{label}</span>
+          {activeCount > 0 && (
+            <span className="lobby-card-active">● {activeCount}</span>
+          )}
+        </div>
+        <span className="lobby-card-name">{room.name}</span>
+        <div className="lobby-card-footer">
+          <span
+            className={`lobby-card-code ${copied ? 'copied' : ''}`}
+            onClick={handleCopyCode}
+            title="Click to copy code"
+          >
+            {copied ? 'Copied!' : room.join_code}
+          </span>
+          <button
+            className="lobby-card-enter"
+            onClick={(e) => { e.stopPropagation(); onEnter(room); }}
+          >
+            Enter →
+          </button>
+        </div>
       </div>
-      {room.owner_id === userId ? (
-        <button
-          className="room-tile-delete"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRequestDelete(room);
-          }}
-          title="Delete room"
-        >
-          {'\u00D7'}
-        </button>
-      ) : (
-        <button
-          className="room-tile-delete room-tile-leave"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRequestLeave(room);
-          }}
-          title="Leave room"
-        >
-          {'\u00D7'}
-        </button>
-      )}
+      <button
+        className="lobby-card-dismiss"
+        onClick={(e) => {
+          e.stopPropagation();
+          isOwner ? onRequestDelete(room) : onRequestLeave(room);
+        }}
+        title={isOwner ? 'Delete room' : 'Leave room'}
+      >
+        ×
+      </button>
     </div>
   );
 }
@@ -213,13 +212,15 @@ export default function Landing() {
   const [roomName, setRoomName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState(null);
+  const [busyCreate, setBusyCreate] = useState(false);
+  const [busyJoin, setBusyJoin] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [leaveTarget, setLeaveTarget] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [roomCounts, setRoomCounts] = useState({});
   const presenceChannelsRef = useRef([]);
+  const roomNameInputRef = useRef(null);
+  const joinCodeInputRef = useRef(null);
 
   useEffect(() => {
     if (user) {
@@ -254,36 +255,34 @@ export default function Landing() {
   const handleCreate = async () => {
     if (!roomName.trim()) return;
     setError('');
-    setBusy(true);
+    setBusyCreate(true);
     try {
       await createRoom(roomName.trim(), user);
     } catch (e) {
       setError(e.message);
     }
-    setBusy(false);
+    setBusyCreate(false);
   };
 
   const handleJoin = async () => {
     if (!joinCode.trim()) return;
     setError('');
-    setBusy(true);
+    setBusyJoin(true);
     try {
       await joinRoom(joinCode.trim(), user);
     } catch (e) {
       setError(e.message);
     }
-    setBusy(false);
+    setBusyJoin(false);
   };
 
   const handleRejoin = async (room) => {
     setError('');
-    setBusy(true);
     try {
       await rejoinRoom(room, user);
     } catch (e) {
       setError(e.message);
     }
-    setBusy(false);
   };
 
   const handleConfirmDelete = async () => {
@@ -331,7 +330,7 @@ export default function Landing() {
     );
   }
 
-  // Authenticated: dashboard
+  // Authenticated: lobby
   return (
     <div className="landing landing-dashboard">
       <div className="landing-bg">
@@ -341,13 +340,55 @@ export default function Landing() {
       </div>
       <div className="dash-layout">
         <div className="dashboard">
-          {/* Brand header with quest logo */}
-          <header className="dash-header fade-up">
-            <div className="dash-brand">
+          {/* Lobby header — single-row game launcher bar */}
+          <header className="lobby-header fade-up">
+            <div className="lobby-brand">
               <img src="/logo.png" alt="Sidequest" className="brand-logo-img" />
-              <h1 className="dash-title">Sidequest</h1>
+              <h1 className="lobby-title">Sidequest</h1>
             </div>
-            <div className="dash-user">
+
+            <div className="lobby-actions">
+              <div className="lobby-create-row">
+                <input
+                  ref={roomNameInputRef}
+                  type="text"
+                  className="lobby-input"
+                  placeholder="Name your room..."
+                  value={roomName}
+                  onChange={(e) => setRoomName(e.target.value)}
+                  maxLength={30}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                />
+                <button
+                  className="lobby-btn lobby-btn-create"
+                  onClick={handleCreate}
+                  disabled={busyCreate || !roomName.trim()}
+                >
+                  {busyCreate ? <div className="loading-spinner tiny" /> : '+ Create'}
+                </button>
+              </div>
+              <div className="lobby-join-row">
+                <input
+                  ref={joinCodeInputRef}
+                  type="text"
+                  className="lobby-input lobby-input-code"
+                  placeholder="Enter code..."
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value)}
+                  maxLength={8}
+                  onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+                />
+                <button
+                  className="lobby-btn lobby-btn-join"
+                  onClick={handleJoin}
+                  disabled={busyJoin || !joinCode.trim()}
+                >
+                  {busyJoin ? <div className="loading-spinner tiny" /> : 'Join'}
+                </button>
+              </div>
+            </div>
+
+            <div className="lobby-user">
               <div className="user-pip" style={{ background: user.color }} />
               <span className="user-name">{user.displayName}</span>
               <a
@@ -360,86 +401,33 @@ export default function Landing() {
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 22h10a1 1 0 001-1v-3H6v3a1 1 0 001 1zM18 4H6a2 2 0 00-2 2v8a4 4 0 004 4h8a4 4 0 004-4h1a3 3 0 003-3V7a3 3 0 00-3-3zm3 7a1 1 0 01-1 1h-1V6h1a1 1 0 011 1v4z"/></svg>
                 Support
               </a>
-              <button className="sign-out-btn" onClick={() => setShowSettings(true)}>Settings</button>
-              <button className="sign-out-btn" onClick={signOut}>Log out</button>
+              <button className="lobby-icon-btn" onClick={() => setShowSettings(true)} title="Settings">
+                <Icon name="settings" size={14} />
+              </button>
+              <button className="lobby-icon-btn" onClick={signOut} title="Log out">
+                <Icon name="arrowRight" size={14} />
+              </button>
             </div>
           </header>
 
-          {/* Quick actions bar */}
-          <div className="quick-bar fade-up" style={{ animationDelay: '80ms' }}>
-            <div className="quick-tabs">
-              <button
-                className={`quick-tab ${mode === 'create' ? 'active' : ''}`}
-                onClick={() => setMode(mode === 'create' ? null : 'create')}
-              >
-                + New Room
-              </button>
-              <button
-                className={`quick-tab ${mode === 'join' ? 'active' : ''}`}
-                onClick={() => setMode(mode === 'join' ? null : 'join')}
-              >
-                Join Room
-              </button>
-            </div>
-            {mode && (
-              <div className="quick-action">
-                {mode === 'create' ? (
-                  <div className="action-row">
-                    <input
-                      type="text"
-                      className="quick-input"
-                      placeholder="Name your room..."
-                      value={roomName}
-                      onChange={(e) => setRoomName(e.target.value)}
-                      maxLength={30}
-                      onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                      autoFocus
-                    />
-                    <button
-                      className="action-btn"
-                      onClick={handleCreate}
-                      disabled={busy || !roomName.trim()}
-                    >
-                      {busy ? <div className="loading-spinner tiny" /> : 'Create'}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="action-row">
-                    <input
-                      type="text"
-                      className="quick-input join-code-input"
-                      placeholder="Enter code..."
-                      value={joinCode}
-                      onChange={(e) => setJoinCode(e.target.value)}
-                      maxLength={8}
-                      onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-                      autoFocus
-                    />
-                    <button
-                      className="action-btn"
-                      onClick={handleJoin}
-                      disabled={busy || !joinCode.trim()}
-                    >
-                      {busy ? <div className="loading-spinner tiny" /> : 'Join'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
           {error && <div className="dash-error fade-up">{error}</div>}
 
-          {/* Rooms grid */}
-          <div className="rooms-section fade-up" style={{ animationDelay: '160ms' }}>
+          {/* Rooms area */}
+          <div className="lobby-rooms-area fade-up" style={{ animationDelay: '120ms' }}>
+            <div className="lobby-section-header">
+              <span className="lobby-section-label">My Rooms</span>
+              {myRooms.length > 0 && (
+                <span className="lobby-section-count">{myRooms.length}</span>
+              )}
+            </div>
             {myRoomsLoading ? (
               <div className="rooms-loading">
                 <div className="loading-spinner small" />
               </div>
             ) : myRooms.length > 0 ? (
-              <div className="room-grid">
+              <div className="lobby-room-grid">
                 {myRooms.map((room, i) => (
-                  <RoomCard
+                  <LobbyRoomCard
                     key={room.id}
                     room={room}
                     index={i}
@@ -452,10 +440,24 @@ export default function Landing() {
                 ))}
               </div>
             ) : (
-              <div className="rooms-empty fade-up">
+              <div className="lobby-empty fade-up">
                 <QuestLogo size="medium" />
                 <p>No rooms yet</p>
-                <span>Create a room to start your sidequest</span>
+                <span>Create a room or join one to start your sidequest</span>
+                <div className="lobby-empty-actions">
+                  <button
+                    className="lobby-empty-btn"
+                    onClick={() => roomNameInputRef.current?.focus()}
+                  >
+                    New Room
+                  </button>
+                  <button
+                    className="lobby-empty-btn lobby-empty-btn-secondary"
+                    onClick={() => joinCodeInputRef.current?.focus()}
+                  >
+                    Join a Room
+                  </button>
+                </div>
               </div>
             )}
           </div>
