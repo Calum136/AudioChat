@@ -329,7 +329,7 @@ export default function Landing() {
 
   // Authenticated: dashboard
   return (
-    <div className="landing">
+    <div className="landing landing-dashboard">
       <div className="landing-bg">
         <div className="aurora aurora-1" />
         <div className="aurora aurora-2" />
@@ -340,7 +340,7 @@ export default function Landing() {
           {/* Brand header with quest logo */}
           <header className="dash-header fade-up">
             <div className="dash-brand">
-              <QuestLogo size="small" />
+              <img src="/logo.png" alt="Sidequest" className="brand-logo-img" />
               <h1 className="dash-title">Sidequest</h1>
             </div>
             <div className="dash-user">

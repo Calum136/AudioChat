@@ -225,6 +225,11 @@ body {
   overflow: hidden;
 }
 
+.landing.landing-dashboard {
+  align-items: flex-start;
+  justify-content: center;
+}
+
 .landing-bg {
   position: absolute;
   inset: 0;
@@ -236,34 +241,34 @@ body {
 .aurora {
   position: absolute;
   border-radius: 50%;
-  filter: blur(100px);
+  filter: blur(60px);
   will-change: transform, opacity;
 }
 
 .aurora-1 {
-  width: 600px;
-  height: 600px;
-  top: -15%;
-  left: -5%;
-  background: radial-gradient(circle, rgba(124, 92, 191, 0.35) 0%, transparent 70%);
+  width: 900px;
+  height: 900px;
+  top: -20%;
+  left: -10%;
+  background: radial-gradient(circle, rgba(124, 92, 191, 0.65) 0%, transparent 70%);
   animation: auroraShift1 24s ease-in-out infinite;
 }
 
 .aurora-2 {
-  width: 500px;
-  height: 500px;
-  bottom: -10%;
+  width: 700px;
+  height: 700px;
+  bottom: -15%;
   right: -5%;
-  background: radial-gradient(circle, rgba(232, 168, 56, 0.25) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.5) 0%, transparent 70%);
   animation: auroraShift2 20s ease-in-out infinite;
 }
 
 .aurora-3 {
-  width: 450px;
-  height: 450px;
-  top: 40%;
-  left: 50%;
-  background: radial-gradient(circle, rgba(78, 205, 196, 0.2) 0%, transparent 70%);
+  width: 600px;
+  height: 600px;
+  top: 30%;
+  left: 45%;
+  background: radial-gradient(circle, rgba(78, 205, 196, 0.4) 0%, transparent 70%);
   animation: auroraShift3 28s ease-in-out infinite;
 }
 
@@ -535,6 +540,13 @@ body {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+}
+
+.brand-logo-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  image-rendering: auto;
 }
 
 .dash-title {
@@ -2274,8 +2286,9 @@ body {
   gap: 1.5rem;
   width: 100%;
   max-width: 1400px;
-  max-height: 100vh;
+  height: 100vh;
   padding: 0 2rem;
+  align-items: flex-start;
 }
 
 .dash-layout .dashboard {
