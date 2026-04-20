@@ -5,6 +5,20 @@ import { useRoomStore } from '../stores/roomStore';
 import ConfirmDialog from './ConfirmDialog';
 import Icon from './Icon';
 
+const NICKNAMES_KEY = 'sq_friend_nicknames';
+
+function loadNicknames() {
+  try {
+    return JSON.parse(localStorage.getItem(NICKNAMES_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveNicknames(map) {
+  localStorage.setItem(NICKNAMES_KEY, JSON.stringify(map));
+}
+
 export default function FriendsPanel() {
   const user = useAuthStore((s) => s.user);
   const roomId = useRoomStore((s) => s.roomId);
@@ -44,6 +58,12 @@ export default function FriendsPanel() {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
+  // Nicknames: { [userId]: string } stored in localStorage
+  const [nicknames, setNicknames] = useState(loadNicknames);
+  const [activeFriend, setActiveFriend] = useState(null); // friend object for popover
+  const [nicknameInput, setNicknameInput] = useState('');
+  const popoverRef = useRef(null);
+
   // Close dropdown on outside click
   useEffect(() => {
     if (!showDropdown) return;
@@ -55,6 +75,38 @@ export default function FriendsPanel() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showDropdown]);
+
+  // Close friend popover on outside click
+  useEffect(() => {
+    if (!activeFriend) return;
+    const handleClick = (e) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target)) {
+        setActiveFriend(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [activeFriend]);
+
+  const openFriendPopover = (f) => {
+    setActiveFriend(f);
+    setNicknameInput(nicknames[f.id] || '');
+    setActiveMenu(null);
+  };
+
+  const handleNicknameSave = () => {
+    const trimmed = nicknameInput.trim();
+    const updated = { ...nicknames };
+    if (trimmed) {
+      updated[activeFriend.id] = trimmed;
+    } else {
+      delete updated[activeFriend.id];
+    }
+    setNicknames(updated);
+    saveNicknames(updated);
+  };
+
+  const getDisplayName = (f) => nicknames[f.id] || f.displayName;
 
   const handleSearch = useCallback((e) => {
     const q = e.target.value;
@@ -116,15 +168,23 @@ export default function FriendsPanel() {
   const renderFriendRow = (f, isOffline = false) => {
     const status = isOffline ? 'offline' : getStatus(f.id);
     const muted = mutedUsers.has(f.id);
+    const displayName = getDisplayName(f);
+    const hasNickname = !!nicknames[f.id];
     return (
       <div key={f.id} className={`friend-row ${status}`}>
-        <div className="friend-avatar" style={{ background: f.color }}>
+        <div
+          className="friend-avatar"
+          style={{ background: f.color, cursor: 'pointer' }}
+          onClick={() => openFriendPopover(f)}
+          title="View profile"
+        >
           {f.displayName[0]}
           {!isOffline && <span className={`status-dot ${status}`} />}
         </div>
-        <div className="friend-info">
+        <div className="friend-info" style={{ cursor: 'pointer' }} onClick={() => openFriendPopover(f)}>
           <span className="friend-name">
-            {f.displayName}
+            {displayName}
+            {hasNickname && <span className="nickname-badge" title={`Real name: ${f.displayName}`}>~</span>}
             {muted && <span className="muted-badge">M</span>}
           </span>
           <span className="friend-status">{statusLabel(status)}</span>
@@ -373,6 +433,98 @@ export default function FriendsPanel() {
         onConfirm={handleConfirm}
         onCancel={() => setConfirmAction(null)}
       />
+
+      {/* Friend profile popover */}
+      {activeFriend && (() => {
+        const f = activeFriend;
+        const status = getStatus(f.id);
+        const muted = mutedUsers.has(f.id);
+        const presence = onlineUsers[f.id];
+        return (
+          <div className="friend-popover" ref={popoverRef}>
+            <div className="friend-popover-header">
+              <div className="friend-popover-avatar" style={{ background: f.color }}>
+                {f.displayName[0]}
+                <span className={`status-dot ${status}`} />
+              </div>
+              <div className="friend-popover-identity">
+                <span className="friend-popover-name">{getDisplayName(f)}</span>
+                {nicknames[f.id] && (
+                  <span className="friend-popover-realname">{f.displayName}</span>
+                )}
+                <span className="friend-popover-status">{statusLabel(status)}</span>
+                {presence?.roomId && (
+                  <span className="friend-popover-room">
+                    {status === 'in-room' ? 'In your room' : 'In a room'}
+                  </span>
+                )}
+              </div>
+              <button className="friend-popover-close" onClick={() => setActiveFriend(null)}>&times;</button>
+            </div>
+
+            <div className="friend-popover-nickname">
+              <label className="friend-popover-label">Nickname</label>
+              <div className="friend-popover-nick-row">
+                <input
+                  className="friend-popover-input"
+                  type="text"
+                  placeholder={f.displayName}
+                  value={nicknameInput}
+                  onChange={(e) => setNicknameInput(e.target.value)}
+                  maxLength={20}
+                  onKeyDown={(e) => e.key === 'Enter' && handleNicknameSave()}
+                />
+                <button
+                  className="friend-popover-save-btn"
+                  onClick={handleNicknameSave}
+                >
+                  Set
+                </button>
+              </div>
+              {nicknames[f.id] && (
+                <button
+                  className="friend-popover-clear-btn"
+                  onClick={() => {
+                    setNicknameInput('');
+                    const updated = { ...nicknames };
+                    delete updated[f.id];
+                    setNicknames(updated);
+                    saveNicknames(updated);
+                  }}
+                >
+                  Clear nickname
+                </button>
+              )}
+            </div>
+
+            <div className="friend-popover-actions">
+              {status === 'online' && roomId && joinCode && (
+                <button
+                  className="friend-popover-action-btn"
+                  onClick={() => { handleInvite(f.id); setActiveFriend(null); }}
+                >
+                  Invite to Room
+                </button>
+              )}
+              <button
+                className="friend-popover-action-btn"
+                onClick={() => { toggleMute(f.id); }}
+              >
+                {muted ? 'Unmute' : 'Mute'}
+              </button>
+              <button
+                className="friend-popover-action-btn danger"
+                onClick={() => {
+                  setConfirmAction({ type: 'remove', target: f });
+                  setActiveFriend(null);
+                }}
+              >
+                Remove Friend
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
