@@ -18,6 +18,7 @@ export const useRoomStore = create((set, get) => ({
   joinCode: '',
   ownerId: null,
   theme: 'gaming-den',
+  roomImageUrl: null,
 
   // My rooms (persisted rooms for current user)
   myRooms: [],
@@ -108,6 +109,7 @@ export const useRoomStore = create((set, get) => ({
       joinCode: '',
       ownerId: null,
       theme: 'gaming-den',
+      roomImageUrl: null,
       furniture: [],
       participants: {},
       isEditing: false,
@@ -273,10 +275,25 @@ export const useRoomStore = create((set, get) => ({
       joinCode: room.join_code,
       ownerId: room.owner_id,
       theme: room.theme || 'gaming-den',
+      roomImageUrl: room.image_url || null,
       furniture,
       isAdmin,
       _channel: channel,
     });
+  },
+
+  updateRoomName: async (newName) => {
+    const { roomId } = get();
+    if (!roomId) return;
+    await roomService.updateRoomName(roomId, newName);
+    set({ roomName: newName });
+  },
+
+  updateRoomImageUrl: async (imageUrl) => {
+    const { roomId } = get();
+    if (!roomId) return;
+    await roomService.updateRoomImageUrl(roomId, imageUrl);
+    set({ roomImageUrl: imageUrl });
   },
 
   // ======== Furniture CRUD (owner broadcasts + persists) ========

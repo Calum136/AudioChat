@@ -155,3 +155,32 @@ export async function setRoomMemberRole(roomId, userId, role) {
     .eq('user_id', userId);
   if (error) throw error;
 }
+
+// ======== Room Customization ========
+
+export async function updateRoomName(roomId, name) {
+  const { error } = await supabase
+    .from('rooms')
+    .update({ name })
+    .eq('id', roomId);
+  if (error) throw error;
+}
+
+export async function updateRoomImageUrl(roomId, imageUrl) {
+  const { error } = await supabase
+    .from('rooms')
+    .update({ image_url: imageUrl })
+    .eq('id', roomId);
+  if (error) throw error;
+}
+
+export async function uploadRoomImage(roomId, userId, file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const path = `${userId}/${roomId}.${ext}`;
+  const { error } = await supabase.storage
+    .from('room-images')
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw error;
+  const { data } = supabase.storage.from('room-images').getPublicUrl(path);
+  return data.publicUrl;
+}

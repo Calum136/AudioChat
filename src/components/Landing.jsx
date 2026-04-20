@@ -141,7 +141,11 @@ function RoomCard({ room, onEnter, onRequestDelete, onRequestLeave, userId, inde
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onEnter(room)}
     >
-      <img className="room-tile-preview" src={getRoomPreview(room.theme)} alt={label} />
+      <img
+        className={`room-tile-preview${room.image_url ? ' room-tile-cover' : ''}`}
+        src={room.image_url || getRoomPreview(room.theme)}
+        alt={label}
+      />
       <span className="room-tile-name">{room.name}</span>
       {activeCount > 0 && (
         <span className="room-tile-active">{activeCount} active</span>

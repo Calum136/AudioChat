@@ -10,9 +10,11 @@ import SocialPanel from './SocialPanel';
 import ThemePicker from './ThemePicker';
 import MusicPlayer from './MusicPlayer';
 import SettingsPage from './SettingsPage';
+import EditRoomModal from './EditRoomModal';
 
 export default function AppShell() {
   const [showSettings, setShowSettings] = useState(false);
+  const [showEditRoom, setShowEditRoom] = useState(false);
   const user = useAuthStore((s) => s.user);
   const roomName = useRoomStore((s) => s.roomName);
   const joinCode = useRoomStore((s) => s.joinCode);
@@ -49,7 +51,18 @@ export default function AppShell() {
             <span>Leave</span>
           </button>
           <div className="room-info">
-            <h1 className="room-title">{roomName}</h1>
+            <h1 className="room-title">
+              {roomName}
+              {isOwner && (
+                <button
+                  className="room-title-edit-btn"
+                  onClick={() => setShowEditRoom(true)}
+                  title="Room Settings"
+                >
+                  <Icon name="edit" size={13} />
+                </button>
+              )}
+            </h1>
             <span className="room-meta">
               {participantCount} here
               {joinCode && (
@@ -126,6 +139,7 @@ export default function AppShell() {
         <SocialPanel />
       </div>
       {showSettings && <SettingsPage onClose={() => setShowSettings(false)} />}
+      {showEditRoom && <EditRoomModal onClose={() => setShowEditRoom(false)} />}
     </div>
   );
 }

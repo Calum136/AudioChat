@@ -2860,6 +2860,7 @@ body {
   gap: 0.5rem;
   height: 100%;
   overflow-y: auto;
+  position: relative;
 }
 
 .friends-header {
@@ -3554,4 +3555,470 @@ body {
 
 .update-dismiss-btn:hover {
   color: var(--text-primary);
+}
+
+/* ==============================================
+   Room Title Edit Button
+   ============================================== */
+
+.room-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.room-title-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.room-info:hover .room-title-edit-btn,
+.room-title-edit-btn:focus {
+  opacity: 1;
+}
+
+.room-title-edit-btn:hover {
+  color: var(--gold);
+  background: rgba(232, 168, 56, 0.12);
+}
+
+/* ==============================================
+   Edit Room Modal
+   ============================================== */
+
+.edit-room-panel {
+  width: 400px;
+  max-width: 95vw;
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.edit-room-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.edit-room-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.edit-room-body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.edit-room-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.edit-room-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.edit-room-row {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-room-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.edit-room-input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.edit-room-save-btn {
+  padding: 8px 16px;
+  background: var(--gold);
+  color: #000;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter 0.15s;
+  white-space: nowrap;
+}
+
+.edit-room-save-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.edit-room-save-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.edit-room-msg {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.edit-room-msg.success { color: var(--teal); }
+.edit-room-msg.error { color: var(--rose); }
+
+.edit-room-image-preview {
+  position: relative;
+  width: 100%;
+  height: 90px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+}
+
+.edit-room-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.edit-room-remove-img {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.edit-room-remove-img:hover {
+  background: var(--rose);
+}
+
+.edit-room-image-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.edit-room-upload-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.edit-room-upload-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--glass-border-hover);
+}
+
+.edit-room-upload-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.edit-room-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.edit-room-members {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.edit-room-member {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-room-member-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.edit-room-member-name {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.edit-room-role-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 8px;
+}
+
+.edit-room-role-badge.owner {
+  background: rgba(232, 168, 56, 0.15);
+  color: var(--gold);
+  border: 1px solid rgba(232, 168, 56, 0.3);
+}
+
+/* Room tile cover image (photo, not pixel art) */
+.room-tile-preview.room-tile-cover {
+  image-rendering: auto;
+  object-fit: cover;
+  height: 60px;
+}
+
+/* ==============================================
+   Friend Nickname Badge
+   ============================================== */
+
+.nickname-badge {
+  font-size: 0.7rem;
+  color: var(--gold);
+  margin-left: 3px;
+  opacity: 0.8;
+  font-weight: 700;
+}
+
+/* ==============================================
+   Friend Profile Popover
+   ============================================== */
+
+.friend-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--glass-border-hover);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 500;
+  overflow: hidden;
+  animation: fadeUp 0.15s ease-out;
+}
+
+.friend-popover-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.friend-popover-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.friend-popover-identity {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.friend-popover-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.friend-popover-realname {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.friend-popover-status {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.friend-popover-room {
+  font-size: 0.72rem;
+  color: var(--teal);
+}
+
+.friend-popover-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.friend-popover-close:hover {
+  color: var(--text-primary);
+}
+
+.friend-popover-nickname {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.friend-popover-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+
+.friend-popover-nick-row {
+  display: flex;
+  gap: 6px;
+}
+
+.friend-popover-input {
+  flex: 1;
+  padding: 5px 9px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-family: inherit;
+}
+
+.friend-popover-input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.friend-popover-save-btn {
+  padding: 5px 12px;
+  background: var(--gold);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter 0.15s;
+}
+
+.friend-popover-save-btn:hover {
+  filter: brightness(1.1);
+}
+
+.friend-popover-clear-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  text-decoration: underline;
+  align-self: flex-start;
+}
+
+.friend-popover-clear-btn:hover {
+  color: var(--rose);
+}
+
+.friend-popover-actions {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.friend-popover-action-btn {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.83rem;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.friend-popover-action-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.friend-popover-action-btn.danger:hover {
+  background: rgba(232, 93, 117, 0.12);
+  color: var(--rose);
 }
