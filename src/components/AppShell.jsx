@@ -27,6 +27,7 @@ export default function AppShell() {
   const isAdmin = useRoomStore((s) => s.isAdmin);
   const knockRequests = useRoomStore((s) => s.knockRequests);
   const dismissKnock = useRoomStore((s) => s.dismissKnock);
+  const sendInvite = useRoomStore((s) => s.sendInvite);
   const connectionState = useVoiceStore((s) => s.connectionState);
   const isMuted = useVoiceStore((s) => s.isMuted);
   const toggleMute = useVoiceStore((s) => s.toggleMute);
@@ -126,8 +127,13 @@ export default function AppShell() {
           {knockRequests.map((k) => (
             <div key={k.userId} className="knock-toast">
               <div className="knock-avatar" style={{ background: k.color }}>{k.displayName[0]}</div>
-              <span className="knock-text"><strong>{k.displayName}</strong> is knocking to join</span>
-              <span className="knock-code">Share code: <strong>{joinCode}</strong></span>
+              <span className="knock-text"><strong>{k.displayName}</strong> is knocking</span>
+              <button
+                className="knock-accept"
+                onClick={() => { sendInvite(k.userId, joinCode); dismissKnock(k.userId); }}
+              >
+                Let In
+              </button>
               <button className="knock-dismiss" onClick={() => dismissKnock(k.userId)}>&times;</button>
             </div>
           ))}

@@ -474,6 +474,15 @@ export const useRoomStore = create((set, get) => ({
     }));
   },
 
+  sendInvite: async (knockerUserId, joinCode) => {
+    const ch = supabase.channel(`invite:${knockerUserId}`);
+    await new Promise((resolve) => ch.subscribe((status) => {
+      if (status === 'SUBSCRIBED') resolve();
+    }));
+    await ch.send({ type: 'broadcast', event: 'room:invite', payload: { joinCode } });
+    supabase.removeChannel(ch);
+  },
+
   /** Send a knock to a room (called from friends panel, targeting a specific room channel) */
   sendKnock: async (targetRoomId, user) => {
     // Use a unique channel name so we never collide with the main room:${id} channel

@@ -3445,6 +3445,84 @@ body {
   letter-spacing: 0.05em;
 }
 
+.knock-accept {
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #D4AF37 0%, #b8962e 100%);
+  color: #1a1000;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.knock-accept:hover {
+  background: linear-gradient(135deg, #e8c84a 0%, #c8a030 100%);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.35);
+}
+
+/* Invite received toast (in FriendsPanel) */
+.invite-toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: var(--radius-sm);
+  margin: 8px 12px 0;
+  animation: fadeUp 0.2s ease both;
+}
+
+.invite-toast-text {
+  flex: 1;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #D4AF37;
+}
+
+.invite-toast-join {
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #D4AF37 0%, #b8962e 100%);
+  color: #1a1000;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.invite-toast-join:hover {
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.35);
+}
+
+.invite-toast-dismiss {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.invite-toast-dismiss:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+}
+
 .knock-dismiss {
   width: 20px;
   height: 20px;

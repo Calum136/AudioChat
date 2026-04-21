@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useFriendStore } from '../stores/friendStore';
 import { useRoomStore } from '../stores/roomStore';
+import { supabase } from '../lib/supabase';
 import ConfirmDialog from './ConfirmDialog';
 import Icon from './Icon';
 
@@ -24,7 +25,10 @@ export default function FriendsPanel() {
   const roomId = useRoomStore((s) => s.roomId);
   const joinCode = useRoomStore((s) => s.joinCode);
   const sendKnock = useRoomStore((s) => s.sendKnock);
+  const joinRoom = useRoomStore((s) => s.joinRoom);
   const [knockedIds, setKnockedIds] = useState(new Set());
+  const [pendingInvite, setPendingInvite] = useState(null); // { joinCode }
+  const inviteChannelRef = useRef(null);
   const friends = useFriendStore((s) => s.friends);
   const pendingRequests = useFriendStore((s) => s.pendingRequests);
   const blockedUsers = useFriendStore((s) => s.blockedUsers);
@@ -194,10 +198,28 @@ export default function FriendsPanel() {
             className={`friend-action-btn knock ${knockedIds.has(f.id) ? 'knocked' : ''}`}
             onClick={() => {
               const targetRoom = onlineUsers[f.id]?.roomId;
-              if (targetRoom && user) {
-                sendKnock(targetRoom, user);
-                setKnockedIds((s) => new Set([...s, f.id]));
-              }
+              if (!targetRoom || !user) return;
+              sendKnock(targetRoom, user);
+              setKnockedIds((s) => new Set([...s, f.id]));
+
+              // Subscribe to a personal invite channel so the owner can
+              // send us the join code directly when they click "Let In"
+              if (inviteChannelRef.current) supabase.removeChannel(inviteChannelRef.current);
+              const ch = supabase.channel(`invite:${user.id}`);
+              ch.on('broadcast', { event: 'room:invite' }, ({ payload }) => {
+                setPendingInvite({ joinCode: payload.joinCode });
+                supabase.removeChannel(ch);
+                inviteChannelRef.current = null;
+              });
+              ch.subscribe();
+              inviteChannelRef.current = ch;
+              // Auto-cleanup after 2 minutes if no response
+              setTimeout(() => {
+                if (inviteChannelRef.current === ch) {
+                  supabase.removeChannel(ch);
+                  inviteChannelRef.current = null;
+                }
+              }, 120_000);
             }}
             disabled={knockedIds.has(f.id)}
             title={knockedIds.has(f.id) ? 'Knock sent!' : 'Knock to request entry'}
@@ -242,6 +264,22 @@ export default function FriendsPanel() {
 
   return (
     <div className="friends-panel">
+      {/* Incoming invite notification */}
+      {pendingInvite && (
+        <div className="invite-toast">
+          <span className="invite-toast-text">You've been invited!</span>
+          <button
+            className="invite-toast-join"
+            onClick={() => {
+              joinRoom(pendingInvite.joinCode, user);
+              setPendingInvite(null);
+            }}
+          >
+            Join Room
+          </button>
+          <button className="invite-toast-dismiss" onClick={() => setPendingInvite(null)}>&times;</button>
+        </div>
+      )}
       {/* Header with dropdown menu */}
       <div className="friends-header" ref={dropdownRef}>
         {view !== 'list' ? (
