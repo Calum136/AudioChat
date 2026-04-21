@@ -48,7 +48,7 @@ export default function Room() {
     calcFitZoom();
     window.addEventListener('resize', calcFitZoom);
     return () => window.removeEventListener('resize', calcFitZoom);
-  }, [ROOM_GRID_W, ROOM_GRID_H, shape.hasWalls]);
+  }, [theme, ROOM_GRID_W, ROOM_GRID_H, shape.hasWalls]);
 
   // Zoom handler (mouse wheel)
   const handleWheel = useCallback((e) => {

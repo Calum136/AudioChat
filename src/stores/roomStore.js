@@ -101,6 +101,7 @@ export const useRoomStore = create((set, get) => ({
     const { _channel } = get();
     if (_channel) {
       _channel.unsubscribe();
+      supabase.removeChannel(_channel);
     }
     set({
       view: 'landing',
@@ -121,6 +122,14 @@ export const useRoomStore = create((set, get) => ({
   },
 
   _enterRoom: async (room, user) => {
+    // Tear down any existing channel before creating a new one
+    const stale = get()._channel;
+    if (stale) {
+      stale.unsubscribe();
+      supabase.removeChannel(stale);
+      set({ _channel: null });
+    }
+
     // Load furniture from DB
     const furnitureRows = await roomService.loadFurniture(room.id);
     const furniture = furnitureRows.map((f) => {
@@ -403,16 +412,32 @@ export const useRoomStore = create((set, get) => ({
     const { _channel } = get();
     const me = get()._getMe(userId);
     if (!me || !_channel) return;
-    _channel.track({
-      userId: me.id,
-      displayName: me.displayName,
-      color: me.color,
-      avatar: me.avatar || null,
-      seatFurnitureId: me.seatFurnitureId,
-      seatIndex: me.seatIndex,
-      gridX,
-      gridY,
-    });
+
+    // Update local participants immediately for instant visual feedback
+    set((s) => ({
+      participants: {
+        ...s.participants,
+        [userId]: { ...s.participants[userId], gridX, gridY },
+      },
+    }));
+
+    // Debounce the presence broadcast — avoids triggering a full
+    // onPresenceSync re-render on every rapid click
+    clearTimeout(moveAvatar._t);
+    moveAvatar._t = setTimeout(() => {
+      const current = get();
+      if (!current._channel) return;
+      current._channel.track({
+        userId: me.id,
+        displayName: me.displayName,
+        color: me.color,
+        avatar: me.avatar || null,
+        seatFurnitureId: me.seatFurnitureId,
+        seatIndex: me.seatIndex,
+        gridX,
+        gridY,
+      });
+    }, 80);
   },
 
   // ======== Theme (owner broadcasts + persists) ========
@@ -451,14 +476,16 @@ export const useRoomStore = create((set, get) => ({
 
   /** Send a knock to a room (called from friends panel, targeting a specific room channel) */
   sendKnock: async (targetRoomId, user) => {
-    const channel = supabase.channel(`room:${targetRoomId}`);
-    await channel.subscribe();
-    channel.send({
+    // Use a unique channel name so we never collide with the main room:${id} channel
+    const knockChannel = supabase.channel(`knock:${targetRoomId}:${Date.now()}`);
+    await new Promise((resolve) => knockChannel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') resolve();
+    }));
+    await knockChannel.send({
       type: 'broadcast',
       event: 'room:knock',
       payload: { userId: user.id, displayName: user.displayName, color: user.color },
     });
-    // Clean up temp channel after a moment
-    setTimeout(() => channel.unsubscribe(), 2000);
+    supabase.removeChannel(knockChannel);
   },
 }));

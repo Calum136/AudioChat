@@ -192,6 +192,9 @@ export const useVoiceStore = create((set, get) => ({
 
   disconnect: async () => {
     get()._cancelRetry();
+    // Clear retry targets BEFORE disconnecting so the Disconnected event
+    // handler doesn't see a valid _lastRoomName and schedule a reconnect.
+    set({ _lastRoomName: null, _lastIdentity: null });
     const { room } = get();
     if (room) {
       await room.disconnect();
@@ -204,8 +207,6 @@ export const useVoiceStore = create((set, get) => ({
       isMuted: false,
       isDeafened: false,
       speakingMap: {},
-      _lastRoomName: null,
-      _lastIdentity: null,
     });
   },
 
