@@ -237,7 +237,7 @@ export default function Landing() {
     if (!myRooms.length) return;
 
     const newChannels = myRooms.map((room) => {
-      const ch = supabase.channel(`room:${room.id}`, { config: { presence: { key: '' } } });
+      const ch = supabase.channel(`lobby:${room.id}`, { config: { presence: { key: '' } } });
       ch.on('presence', { event: 'sync' }, () => {
         const count = Object.keys(ch.presenceState()).length;
         setRoomCounts((prev) => ({ ...prev, [room.id]: count }));
@@ -340,12 +340,36 @@ export default function Landing() {
       </div>
       <div className="dash-layout">
         <div className="dashboard">
-          {/* Lobby header — single-row game launcher bar */}
+          {/* Lobby header — glass panel with brand row + actions row */}
           <header className="lobby-header fade-up">
-            <div className="lobby-brand">
-              <img src="/logo.png" alt="Sidequest" className="brand-logo-img" />
-              <h1 className="lobby-title">Sidequest</h1>
+            <div className="lobby-header-top">
+              <div className="lobby-brand">
+                <img src="/logo.png" alt="Sidequest" className="brand-logo-img" />
+                <h1 className="lobby-title">Sidequest</h1>
+              </div>
+              <div className="lobby-user">
+                <div className="user-pip" style={{ background: user.color }} />
+                <span className="user-name">{user.displayName}</span>
+                <a
+                  className="bmc-btn"
+                  href="https://buymeacoffee.com/maritimehomebuyer"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Buy me a coffee"
+                >
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 22h10a1 1 0 001-1v-3H6v3a1 1 0 001 1zM18 4H6a2 2 0 00-2 2v8a4 4 0 004 4h8a4 4 0 004-4h1a3 3 0 003-3V7a3 3 0 00-3-3zm3 7a1 1 0 01-1 1h-1V6h1a1 1 0 011 1v4z"/></svg>
+                  Support
+                </a>
+                <button className="lobby-icon-btn" onClick={() => setShowSettings(true)} title="Settings">
+                  <Icon name="settings" size={14} />
+                </button>
+                <button className="lobby-icon-btn" onClick={signOut} title="Log out">
+                  <Icon name="arrowRight" size={14} />
+                </button>
+              </div>
             </div>
+
+            <div className="lobby-header-divider" />
 
             <div className="lobby-actions">
               <div className="lobby-create-row">
@@ -386,27 +410,6 @@ export default function Landing() {
                   {busyJoin ? <div className="loading-spinner tiny" /> : 'Join'}
                 </button>
               </div>
-            </div>
-
-            <div className="lobby-user">
-              <div className="user-pip" style={{ background: user.color }} />
-              <span className="user-name">{user.displayName}</span>
-              <a
-                className="bmc-btn"
-                href="https://buymeacoffee.com/maritimehomebuyer"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Buy me a coffee"
-              >
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 22h10a1 1 0 001-1v-3H6v3a1 1 0 001 1zM18 4H6a2 2 0 00-2 2v8a4 4 0 004 4h8a4 4 0 004-4h1a3 3 0 003-3V7a3 3 0 00-3-3zm3 7a1 1 0 01-1 1h-1V6h1a1 1 0 011 1v4z"/></svg>
-                Support
-              </a>
-              <button className="lobby-icon-btn" onClick={() => setShowSettings(true)} title="Settings">
-                <Icon name="settings" size={14} />
-              </button>
-              <button className="lobby-icon-btn" onClick={signOut} title="Log out">
-                <Icon name="arrowRight" size={14} />
-              </button>
             </div>
           </header>
 
