@@ -18,6 +18,7 @@ export default function Room() {
   const addFurniture = useRoomStore((s) => s.addFurniture);
   const participants = useRoomStore((s) => s.participants);
   const moveAvatar = useRoomStore((s) => s.moveAvatar);
+  const standUp = useRoomStore((s) => s.standUp);
   const selectedType = useRoomStore((s) => s.selectedFurnitureType);
   const setSelectedType = useRoomStore((s) => s.setSelectedFurnitureType);
   const user = useAuthStore((s) => s.user);
@@ -34,18 +35,22 @@ export default function Room() {
   const ROOM_GRID_H = shape.gridH;
   const mask = shape.mask;
 
-  // Auto-fit zoom: scale room to fit the viewport on mount and resize
+  // Auto-fit zoom: scale room to fill the viewport on mount and resize.
+  // Bias toward a larger default zoom so the iso grid isn't lost in empty space.
   useEffect(() => {
     const calcFitZoom = () => {
       const container = roomRef.current;
       if (!container) return;
       const totalW = (ROOM_GRID_W + ROOM_GRID_H) * (TILE_W / 2);
       const totalH = (ROOM_GRID_W + ROOM_GRID_H) * (TILE_H / 2) + TILE_H + (shape.hasWalls ? WALL_H : 0);
-      const pad = 40;
-      const fitW = (container.clientWidth - pad) / totalW;
-      const fitH = (container.clientHeight - pad) / totalH;
-      const fit = Math.min(fitW, fitH, 2);
-      setZoom(Math.max(0.4, Math.round(fit * 20) / 20));
+      // Tight padding so the room feels present; allow a bit more breathing on top.
+      const padW = 24;
+      const padH = 80;
+      const fitW = (container.clientWidth - padW) / totalW;
+      const fitH = (container.clientHeight - padH) / totalH;
+      // Take the tightest dimension but allow up to 2.5x so small rooms aren't tiny.
+      const fit = Math.min(fitW, fitH, 2.5);
+      setZoom(Math.max(0.6, Math.round(fit * 20) / 20));
     };
     calcFitZoom();
     window.addEventListener('resize', calcFitZoom);
@@ -212,10 +217,17 @@ export default function Room() {
       const raw = screenToIso(sx, sy, originX, originY);
       const { gx, gy } = snapToGrid(raw.gx, raw.gy);
       if (isInBounds(gx, gy, ROOM_GRID_W, ROOM_GRID_H) && isInMask(gx, gy, mask)) {
+        // If currently seated, clicking anywhere on the floor stands us up
+        // AND moves the avatar to the clicked cell (stopPropagation on
+        // SeatMarker / FurnitureItem prevents this firing when clicking a seat).
+        const me = participants[user.id];
+        if (me?.seatFurnitureId) {
+          standUp(user.id);
+        }
         moveAvatar(user.id, gx, gy);
       }
     }
-  }, [isEditing, selectedType, placeFurnitureAt, setSelectedType, user, moveAvatar, originX, originY, zoom, ROOM_GRID_W, ROOM_GRID_H, mask]);
+  }, [isEditing, selectedType, placeFurnitureAt, setSelectedType, user, moveAvatar, standUp, participants, originX, originY, zoom, ROOM_GRID_W, ROOM_GRID_H, mask]);
 
   // Sort furniture by depth for correct overlapping, hide items on void cells
   const sortedFurniture = useMemo(() => {

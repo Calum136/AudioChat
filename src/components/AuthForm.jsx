@@ -317,42 +317,6 @@ export default function AuthForm() {
         </button>
 
         {/* Divider */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            color: 'var(--text-muted)',
-            fontSize: 11,
-            margin: '6px 0',
-            letterSpacing: '0.02em',
-          }}
-        >
-          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
-          <span>or continue with</span>
-          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
-        </div>
-
-        {/* Social row — visual only for now */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          {['Google', 'Discord', 'Apple'].map((p) => (
-            <button
-              key={p}
-              type="button"
-              className="ghost-btn"
-              disabled
-              title="Coming soon"
-              style={{
-                padding: '10px 0',
-                fontSize: 12,
-                opacity: 0.55,
-                cursor: 'not-allowed',
-              }}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
       </div>
     </form>
   );

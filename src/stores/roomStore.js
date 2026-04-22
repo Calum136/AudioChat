@@ -113,6 +113,11 @@ export const useRoomStore = create((set, get) => ({
       _channel.unsubscribe();
       supabase.removeChannel(_channel);
     }
+    // NOTE: we intentionally keep `myRooms` intact so the lobby renders
+    // the previous list immediately on return. Landing's useEffect will
+    // re-fetch via loadMyRooms and replace the cached entries. Wiping the
+    // list here previously left the lobby stuck in an empty/loading state
+    // when the re-fetch silently stalled.
     set({
       view: 'landing',
       roomId: null,
@@ -126,7 +131,6 @@ export const useRoomStore = create((set, get) => ({
       isEditing: false,
       isAdmin: false,
       _channel: null,
-      myRooms: [],
       knockRequests: [],
     });
   },

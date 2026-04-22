@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useRoomStore } from '../stores/roomStore';
 import { supabase } from '../lib/supabase';
@@ -667,27 +667,7 @@ function LobbyHeader({ user, onSignOut, onOpenSettings }) {
         </span>
       </div>
 
-      {/* Nav pills (currently visual — Home is active) */}
-      <div style={{ display: 'flex', gap: 18, marginLeft: 12 }}>
-        {['Home', 'Rooms', 'Library', 'Friends'].map((l, i) => (
-          <button
-            key={l}
-            disabled={i !== 0}
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: i === 0 ? 'var(--text-primary)' : 'var(--text-muted)',
-              padding: '6px 2px',
-              borderBottom: i === 0 ? '1.5px solid var(--gold)' : '1.5px solid transparent',
-              background: 'transparent',
-              cursor: i === 0 ? 'default' : 'not-allowed',
-              opacity: i === 0 ? 1 : 0.55,
-            }}
-          >
-            {l}
-          </button>
-        ))}
-      </div>
+      {/* Nav placeholder tabs removed until Rooms/Library/Friends pages exist. */}
 
       <div style={{ flex: 1 }} />
 
@@ -1012,9 +992,28 @@ export default function Landing() {
   // ========== Authenticated lobby (redesigned to match Claude Design) ==========
   const displayName = user.displayName || user.email?.split('@')[0] || 'Adventurer';
   const liveCount = Object.values(roomCounts).filter((c) => c > 0).length;
-  const now = new Date();
-  const weekday = now.toLocaleDateString(undefined, { weekday: 'long' });
-  const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  // Rotating splash line — Minecraft-style, one picked per mount.
+  const splash = useMemo(() => {
+    const lines = [
+      "The fire's warm.",
+      'Pull up a chair.',
+      'Your party missed you.',
+      'Voice check.',
+      'Dice are rolling somewhere.',
+      'Snacks in the kitchen.',
+      'Log in, log off, log on.',
+      'Lanterns are lit.',
+      'Someone saved you a seat.',
+      'The couch remembers.',
+      'No host, just vibes.',
+      'Feet up, mic open.',
+      'Still the coziest lounge on the internet.',
+      'Bring your own playlist.',
+      'Quest board is empty, thankfully.',
+      'The loot is friendship.',
+    ];
+    return lines[Math.floor(Math.random() * lines.length)];
+  }, []);
 
   return (
     <div
@@ -1045,22 +1044,17 @@ export default function Landing() {
       >
         {/* Center column */}
         <div style={{ padding: '28px 32px 40px', overflow: 'auto' }}>
-          {/* Greeting */}
-          <div className="fade-up" style={{ marginBottom: 22 }}>
-            <div className="eyebrow" style={{ marginBottom: 8 }}>
-              {weekday} · {time}
-            </div>
-            <div className="title-xl" style={{ fontSize: 32, marginBottom: 8 }}>
+          {/* Greeting — rotating splash line per load */}
+          <div className="fade-up" style={{ marginBottom: 18 }}>
+            <div className="title-xl" style={{ fontSize: 30, marginBottom: 4 }}>
               Welcome back, <span style={{ color: 'var(--gold)' }}>{displayName}</span>.{' '}
-              The fire&rsquo;s warm.
+              {splash}
             </div>
-            <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-              {myRooms.length === 0
-                ? 'Create your first room or join one with a code.'
-                : liveCount > 0
-                ? `${liveCount} of your rooms ${liveCount === 1 ? 'is' : 'are'} live right now.`
-                : `${myRooms.length} ${myRooms.length === 1 ? 'room' : 'rooms'} in your library.`}
-            </div>
+            {liveCount > 0 && (
+              <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+                {liveCount} of your rooms {liveCount === 1 ? 'is' : 'are'} live right now.
+              </div>
+            )}
           </div>
 
           {/* Quick create / join bar */}

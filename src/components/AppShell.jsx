@@ -360,7 +360,7 @@ export default function AppShell() {
           </button>
         )}
 
-        {canEdit && <ThemePicker />}
+        {canEdit && isEditing && <ThemePicker />}
 
         <TopIconBtn onClick={() => setShowSettings(true)} title="Settings">
           <I.settings s={14} />
