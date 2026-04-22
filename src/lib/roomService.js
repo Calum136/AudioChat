@@ -11,14 +11,13 @@ export async function createRoom(name, ownerId) {
 }
 
 export async function getRoomByJoinCode(joinCode) {
-  const normalized = joinCode.trim().toLowerCase();
+  const normalized = joinCode.trim();
+  // Use SECURITY DEFINER RPC so join-by-code works even though the rooms
+  // SELECT policy only exposes rooms to owners and members.
   const { data, error } = await supabase
-    .from('rooms')
-    .select('*')
-    .ilike('join_code', normalized)
-    .maybeSingle();
+    .rpc('find_room_by_code', { code: normalized });
   if (error) throw error;
-  return data;
+  return Array.isArray(data) ? data[0] || null : data || null;
 }
 
 export async function getUserRooms(userId) {

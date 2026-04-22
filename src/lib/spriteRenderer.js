@@ -4,6 +4,9 @@
  * Caches results so each sprite is rendered only once.
  */
 
+// LRU sprite cache. Map preserves insertion order, so re-inserting on hit
+// moves an entry to the "most recent" end; we evict from the front.
+const CACHE_MAX = 500;
 const cache = new Map();
 
 /**
@@ -15,7 +18,12 @@ const cache = new Map();
  */
 export function renderPixelGrid(grid, palette, scale = 1) {
   const key = JSON.stringify({ grid, palette, scale });
-  if (cache.has(key)) return cache.get(key);
+  if (cache.has(key)) {
+    const hit = cache.get(key);
+    cache.delete(key);
+    cache.set(key, hit);
+    return hit;
+  }
 
   const h = grid.length;
   const w = grid[0].length;
@@ -35,6 +43,10 @@ export function renderPixelGrid(grid, palette, scale = 1) {
 
   const url = canvas.toDataURL('image/png');
   cache.set(key, url);
+  if (cache.size > CACHE_MAX) {
+    const oldestKey = cache.keys().next().value;
+    cache.delete(oldestKey);
+  }
   return url;
 }
 

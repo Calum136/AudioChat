@@ -22,6 +22,8 @@ export default function Room() {
   const setSelectedType = useRoomStore((s) => s.setSelectedFurnitureType);
   const user = useAuthStore((s) => s.user);
   const flipFurniture = useRoomStore((s) => s.flipFurniture);
+  const lastError = useRoomStore((s) => s.lastError);
+  const clearError = useRoomStore((s) => s.clearError);
   const roomRef = useRef(null);
   const themeData = THEMES[theme];
   const [zoom, setZoom] = useState(1);
@@ -151,7 +153,7 @@ export default function Room() {
   }, [furniture, ROOM_GRID_W, ROOM_GRID_H, mask]);
 
   // Place furniture at grid coords (shared by drag-drop and click-to-place)
-  const placeFurnitureAt = useCallback((type, screenX, screenY) => {
+  const placeFurnitureAt = useCallback(async (type, screenX, screenY) => {
     if (!type || !FURNITURE_CATALOG[type]) return false;
 
     const floorEl = roomRef.current?.querySelector('.iso-floor');
@@ -175,8 +177,8 @@ export default function Room() {
       }
     }
 
-    addFurniture(type, gx, gy);
-    return true;
+    const result = await addFurniture(type, gx, gy);
+    return result?.success === true;
   }, [addFurniture, originX, originY, occupiedCells, zoom, ROOM_GRID_W, ROOM_GRID_H, mask]);
 
   // Drop handler: convert screen coords to grid coords
@@ -194,11 +196,10 @@ export default function Room() {
   }, [isEditing, placeFurnitureAt]);
 
   // Click handler: furniture placement (edit mode) or avatar movement (normal mode)
-  const handleClick = useCallback((e) => {
+  const handleClick = useCallback(async (e) => {
     if (isEditing && selectedType) {
-      if (placeFurnitureAt(selectedType, e.clientX, e.clientY)) {
-        setSelectedType(null);
-      }
+      const ok = await placeFurnitureAt(selectedType, e.clientX, e.clientY);
+      if (ok) setSelectedType(null);
       return;
     }
 
@@ -429,6 +430,12 @@ export default function Room() {
 
         {isEditing && furniture.length === 0 && (
           <div className="room-empty">Drag furniture here from the palette</div>
+        )}
+        {lastError && (
+          <div className="room-error-toast" role="alert">
+            <span>{lastError}</span>
+            <button onClick={clearError} aria-label="Dismiss">×</button>
+          </div>
         )}
       </div>
     </div>

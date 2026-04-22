@@ -1,5 +1,10 @@
 node_modules
 dist
+dist-electron
+out
+release
+release-v2
+release-v3
 .env
 
 # Local Netlify folder

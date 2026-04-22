@@ -4,11 +4,14 @@ import { useRoomStore } from './stores/roomStore';
 import { useFriendStore } from './stores/friendStore';
 import Landing from './components/Landing';
 import AppShell from './components/AppShell';
+import Onboarding from './components/Onboarding';
 import UpdateNotification from './components/UpdateNotification';
+import ErrorBoundary from './components/ErrorBoundary';
 
 export default function App() {
   const view = useRoomStore((s) => s.view);
   const roomId = useRoomStore((s) => s.roomId);
+  const onboardingActive = useRoomStore((s) => s.onboardingActive);
   const loading = useAuthStore((s) => s.loading);
   const user = useAuthStore((s) => s.user);
   const initialize = useAuthStore((s) => s.initialize);
@@ -18,7 +21,13 @@ export default function App() {
   const loadFriends = useFriendStore((s) => s.loadFriends);
 
   useEffect(() => {
-    initialize();
+    // initialize() already handles its own errors; this catch is a
+    // belt-and-braces guard so a throw can never strand the app in the
+    // loading state.
+    Promise.resolve(initialize()).catch((e) => {
+      console.error('[app] initialize failed:', e);
+      useAuthStore.setState({ loading: false });
+    });
     // Restore persisted appearance settings
     const scale = localStorage.getItem('sq-ui-scale');
     if (scale) document.documentElement.dataset.uiScale = scale;
@@ -66,7 +75,10 @@ export default function App() {
 
   return (
     <div className="app">
-      {view === 'landing' ? <Landing /> : <AppShell />}
+      <ErrorBoundary>
+        {view === 'landing' ? <Landing /> : <AppShell />}
+      </ErrorBoundary>
+      {onboardingActive && <Onboarding />}
       {window.electronAPI?.isElectron && <UpdateNotification />}
     </div>
   );

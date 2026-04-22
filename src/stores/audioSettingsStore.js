@@ -11,9 +11,16 @@ function loadSettings() {
   }
 }
 
-function saveSettings(settings) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+// Debounce localStorage writes so rapid slider drags don't hammer disk
+let saveTimer = null;
+function scheduleSave(settings) {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)); } catch {}
+  }, 200);
 }
+
+const clamp01 = (v) => Math.max(0, Math.min(1, Number.isFinite(v) ? v : 0));
 
 const defaults = {
   masterVolume: 1,
@@ -29,9 +36,9 @@ export const useAudioSettingsStore = create((set, get) => ({
   ...defaults,
   ...saved,
 
-  setMasterVolume: (v) => { set({ masterVolume: v }); saveSettings({ ...get(), masterVolume: v }); },
-  setSfxVolume: (v) => { set({ sfxVolume: v }); saveSettings({ ...get(), sfxVolume: v }); },
-  setVoiceVolume: (v) => { set({ voiceVolume: v }); saveSettings({ ...get(), voiceVolume: v }); },
-  setMicInputVolume: (v) => { set({ micInputVolume: v }); saveSettings({ ...get(), micInputVolume: v }); },
-  setSfxEnabled: (v) => { set({ sfxEnabled: v }); saveSettings({ ...get(), sfxEnabled: v }); },
+  setMasterVolume: (v) => { const c = clamp01(v); set({ masterVolume: c }); scheduleSave({ ...get(), masterVolume: c }); },
+  setSfxVolume: (v) => { const c = clamp01(v); set({ sfxVolume: c }); scheduleSave({ ...get(), sfxVolume: c }); },
+  setVoiceVolume: (v) => { const c = clamp01(v); set({ voiceVolume: c }); scheduleSave({ ...get(), voiceVolume: c }); },
+  setMicInputVolume: (v) => { const c = clamp01(v); set({ micInputVolume: c }); scheduleSave({ ...get(), micInputVolume: c }); },
+  setSfxEnabled: (v) => { set({ sfxEnabled: !!v }); scheduleSave({ ...get(), sfxEnabled: !!v }); },
 }));

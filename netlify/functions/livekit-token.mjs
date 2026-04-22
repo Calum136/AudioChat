@@ -3,52 +3,67 @@ import { AccessToken } from 'livekit-server-sdk';
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
+function json(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+  });
+}
+
+// Validate a Supabase access token by calling the GoTrue /user endpoint.
+// Returns { userId, error }. Keeps the function dependency-free (no sdk).
+async function verifySupabaseUser(accessToken, supabaseUrl, anonKey) {
+  const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      apikey: anonKey,
+    },
+  });
+  if (!res.ok) return { error: 'invalid_token' };
+  const data = await res.json();
+  if (!data?.id) return { error: 'invalid_token' };
+  return { userId: data.id };
+}
+
 export default async (req) => {
-  // Handle CORS preflight for Electron desktop app
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
   }
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
-    });
+  const authHeader = req.headers.get('authorization') || '';
+  const accessToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  if (!accessToken) return json({ error: 'Missing auth token' }, 401);
+
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !anonKey) {
+    return json({ error: 'Supabase server env not configured' }, 500);
   }
 
-  const { roomName, identity } = await req.json();
+  const { userId, error: authErr } = await verifySupabaseUser(accessToken, supabaseUrl, anonKey);
+  if (authErr) return json({ error: 'Unauthorized' }, 401);
 
-  if (!roomName || !identity) {
-    return new Response(JSON.stringify({ error: 'roomName and identity are required' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
-    });
-  }
+  const { roomName } = await req.json();
+  if (!roomName) return json({ error: 'roomName is required' }, 400);
 
   const apiKey = process.env.LIVEKIT_API_KEY;
   const apiSecret = process.env.LIVEKIT_API_SECRET;
+  if (!apiKey || !apiSecret) return json({ error: 'LiveKit credentials not configured' }, 500);
 
-  if (!apiKey || !apiSecret) {
-    return new Response(JSON.stringify({ error: 'LiveKit credentials not configured' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
-    });
-  }
-
+  // Identity is derived server-side from the verified access token so a
+  // malicious client can't mint tokens for other users.
   const at = new AccessToken(apiKey, apiSecret, {
-    identity,
+    identity: userId,
     ttl: '6h',
   });
   at.addGrant({ roomJoin: true, room: roomName, canPublish: true, canSubscribe: true });
   const token = await at.toJwt();
 
-  return new Response(JSON.stringify({ token }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
-  });
+  return json({ token });
 };
 
 export const config = {

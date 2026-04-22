@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Room, RoomEvent, Track } from 'livekit-client';
 import { useFriendStore } from './friendStore';
 import { useAudioSettingsStore } from './audioSettingsStore';
+import { supabase } from '../lib/supabase';
 
 const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL;
 
@@ -59,17 +60,29 @@ export const useVoiceStore = create((set, get) => ({
         publishDefaults: { audioBitrate: 24000 },
       });
 
-      // Fetch token from our server (or Netlify in Electron production)
+      // Fetch token from our server (or Netlify in Electron production).
+      // The server verifies the Supabase access token and derives the
+      // LiveKit identity from it, so we no longer send identity in the body.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) throw new Error('Not signed in');
+
       const res = await fetch(TOKEN_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomName, identity }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ roomName }),
       });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'Failed to get token');
       }
+      // identity is intentionally ignored here — preserved only so the
+      // existing callers (useVoiceConnection) don't need to change.
+      void identity;
 
       const { token } = await res.json();
 

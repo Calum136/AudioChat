@@ -55,10 +55,25 @@
   --radius-lg: 18px;
   --radius-xl: 24px;
 
+  /* Radius aliases (Claude Design tokens) */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+
+  /* Typography (Claude Design tokens) */
+  --font-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-ui: 'Manrope', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Gold intensity — tweakable 0..1.4 */
+  --gold-intensity: 1;
+  --gold-glow: 0 0 24px rgba(232, 168, 56, 0.25);
+
   /* UI Scale */
   --ui-scale: 1;
 
-  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-ui);
   color: var(--text-primary);
   background: var(--bg-deep);
   color-scheme: dark;
@@ -1370,6 +1385,88 @@ body {
   color: var(--text-muted);
   font-size: 0.9rem;
   pointer-events: none;
+}
+
+.room-error-toast {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(220, 60, 60, 0.92);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  z-index: 500;
+  max-width: 480px;
+}
+
+.room-error-toast button {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.error-boundary {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg, #0b0b18);
+  z-index: 10000;
+  padding: 24px;
+}
+
+.error-boundary-card {
+  max-width: 480px;
+  padding: 32px;
+  background: rgba(24, 24, 40, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.error-boundary-card h2 {
+  margin: 0 0 12px;
+  color: #ff8a8a;
+  font-size: 1.3rem;
+}
+
+.error-boundary-msg {
+  color: var(--text-muted, #aaa);
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+  word-break: break-word;
+}
+
+.error-boundary-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.error-boundary-actions button {
+  padding: 8px 18px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.error-boundary-actions button:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 /* ==============================================
@@ -4547,4 +4644,399 @@ body {
 .electron .lobby-header a,
 .electron .lobby-header select {
   -webkit-app-region: no-drag;
+}
+
+/* ==============================================
+   Claude Design — Cozy Neon Lounge primitives
+   Tokens + utilities consumed by new design
+   components (Aurora, StatusPill, buttons, etc).
+   Imported from the Claude Design bundle.
+   ============================================== */
+
+/* Glass utility (parallel to existing .glass-panel) */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+/* Gold primary button — intensity-aware */
+.gold-btn {
+  background: linear-gradient(180deg,
+    rgba(232, 168, 56, calc(0.18 * var(--gold-intensity))) 0%,
+    rgba(200, 138, 32, calc(0.14 * var(--gold-intensity))) 100%);
+  border: 1px solid rgba(232, 168, 56, calc(0.45 * var(--gold-intensity)));
+  color: #f3d79a;
+  padding: 10px 16px;
+  border-radius: var(--r-sm);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 160ms ease;
+  box-shadow: 0 0 0 rgba(232, 168, 56, 0);
+  cursor: pointer;
+}
+.gold-btn:hover {
+  background: linear-gradient(180deg,
+    rgba(232, 168, 56, calc(0.28 * var(--gold-intensity))) 0%,
+    rgba(200, 138, 32, calc(0.22 * var(--gold-intensity))) 100%);
+  border-color: rgba(232, 168, 56, calc(0.7 * var(--gold-intensity)));
+  color: #fce3a8;
+  box-shadow: 0 0 24px rgba(232, 168, 56, calc(0.25 * var(--gold-intensity)));
+}
+.gold-btn:active { transform: translateY(1px); }
+.gold-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Ghost / secondary button */
+.ghost-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  padding: 10px 16px;
+  border-radius: var(--r-sm);
+  font-family: var(--font-ui);
+  font-weight: 500;
+  transition: all 160ms ease;
+  cursor: pointer;
+}
+.ghost-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Input baseline */
+.sq-input {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--r-sm);
+  padding: 11px 14px;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  outline: none;
+  width: 100%;
+  transition: all 160ms ease;
+}
+.sq-input:focus {
+  border-color: rgba(232, 168, 56, calc(0.55 * var(--gold-intensity)));
+  background: rgba(255, 255, 255, 0.05);
+}
+.sq-input::placeholder { color: var(--text-muted); }
+
+/* Gold slider (range input) — invisible track, big gold thumb */
+.sq-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  outline: none;
+}
+.sq-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  background: transparent;
+  border-radius: 3px;
+}
+.sq-slider::-moz-range-track {
+  height: 6px;
+  background: transparent;
+  border-radius: 3px;
+}
+.sq-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: none;
+  box-shadow: 0 0 14px rgba(232, 168, 56, 0.6);
+  cursor: pointer;
+  margin-top: -4px;
+}
+.sq-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: none;
+  box-shadow: 0 0 14px rgba(232, 168, 56, 0.6);
+  cursor: pointer;
+}
+
+/* Typography utilities */
+.eyebrow {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.title-xl {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 38px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.title-lg {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 26px;
+  letter-spacing: -0.015em;
+}
+.title-md {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+.mono { font-family: var(--font-mono); }
+
+/* Presence dots */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot.online {
+  background: #6fe4a8;
+  box-shadow: 0 0 8px rgba(111, 228, 168, 0.6);
+}
+.dot.in-room {
+  background: var(--gold);
+  box-shadow: 0 0 8px rgba(232, 168, 56, 0.6);
+}
+.dot.offline { background: #3a3a55; }
+
+/* ==============================================
+   Aurora — drifting blobs behind glass
+   ============================================== */
+
+.aurora-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  animation: aurora-drift 24s ease-in-out infinite;
+}
+.aurora-wrap.subtle .aurora-blob {
+  opacity: 0.22;
+  filter: blur(100px);
+}
+.aurora-wrap.whisper .aurora-blob {
+  opacity: 0.08;
+  filter: blur(110px);
+}
+
+.aurora-blob.a {
+  width: 620px;
+  height: 620px;
+  background: #7c5cbf;
+  top: -160px;
+  left: -120px;
+  animation-delay: 0s;
+}
+.aurora-blob.b {
+  width: 540px;
+  height: 540px;
+  background: #e8a838;
+  bottom: -180px;
+  right: -120px;
+  animation-delay: -8s;
+}
+.aurora-blob.c {
+  width: 420px;
+  height: 420px;
+  background: #4ecdc4;
+  top: 40%;
+  left: 40%;
+  animation-delay: -14s;
+}
+.aurora-blob.d {
+  width: 360px;
+  height: 360px;
+  background: #c850c0;
+  top: 10%;
+  right: 20%;
+  animation-delay: -18s;
+}
+
+@keyframes aurora-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(60px, -40px) scale(1.08); }
+  66%      { transform: translate(-50px, 50px) scale(0.95); }
+}
+
+@keyframes gold-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(232, 168, 56, 0); }
+  50%      { box-shadow: 0 0 24px rgba(232, 168, 56, 0.35); }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fade-up 380ms ease both; }
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob { animation: none; }
+  .fade-up { animation: none; }
+}
+
+/* ==============================================
+   Lobby responsive + Electron drag region
+   ============================================== */
+
+/* Collapse friends rail on narrow viewports */
+@media (max-width: 900px) {
+  .lobby-main-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .lobby-friends-rail {
+    display: none !important;
+  }
+}
+
+/* Collapse quick-bar columns on narrow viewports */
+@media (max-width: 720px) {
+  .lobby-quick-bar {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Make the new lobby header draggable in Electron */
+.electron .lobby-header-new {
+  -webkit-app-region: drag;
+  padding-right: 140px;
+}
+.electron .lobby-header-new button,
+.electron .lobby-header-new input,
+.electron .lobby-header-new a,
+.electron .lobby-header-new select {
+  -webkit-app-region: no-drag;
+}
+
+/* Auth screen drag region (Electron) — whole top strip drags */
+.electron .auth-brand-bar {
+  -webkit-app-region: drag;
+  padding-right: 140px;
+}
+.electron .auth-brand-bar a,
+.electron .auth-brand-bar button {
+  -webkit-app-region: no-drag;
+}
+
+/* ==============================================
+   Room shell — Claude Design layout overrides
+   Shell is positioned (absolute children), so the
+   old flex-column layout is overridden here.
+   ============================================== */
+
+.room-shell {
+  /* Override the old app-shell flex defaults — we now position children absolutely */
+  display: block !important;
+  height: auto !important;
+  background: transparent !important; /* themed radial gradient is applied inline */
+}
+
+/* Old app-header/app-body are unused; if they accidentally render they should not block */
+.room-shell .app-header,
+.room-shell .app-body {
+  display: none;
+}
+
+/* Top-bar icon button baseline */
+.room-top-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 140ms ease;
+  flex-shrink: 0;
+}
+.room-top-icon-btn:hover {
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Right rail — SocialPanel fills its glass wrapper cleanly */
+.room-right-rail .social-panel {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 0;
+}
+.room-right-rail .social-content,
+.room-right-rail .friend-panel {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  height: auto;
+}
+
+/* Left rail — Palette fills its glass wrapper cleanly */
+.room-left-rail .palette {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 0;
+  overflow: auto;
+}
+
+/* Electron drag region — entire top bar drags, interactive children don't */
+.electron .room-top-bar {
+  -webkit-app-region: drag;
+  padding-right: 140px; /* room for macOS traffic lights / Windows controls */
+}
+.electron .room-top-bar button,
+.electron .room-top-bar input,
+.electron .room-top-bar a,
+.electron .room-top-bar select {
+  -webkit-app-region: no-drag;
+}
+
+/* Knock toast spacing tweak so it sits below the new top bar */
+.room-shell .knock-bar {
+  position: absolute;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Responsive: hide left rail on very narrow (Electron min-width safe) */
+@media (max-width: 760px) {
+  .room-right-rail { width: 220px !important; }
+  .room-center { right: 244px !important; }
 }

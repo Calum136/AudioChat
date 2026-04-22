@@ -12,6 +12,12 @@ export const useRoomStore = create((set, get) => ({
   view: 'landing',
   setView: (view) => set({ view }),
 
+  // Onboarding wizard overlay (shown on fresh room creation)
+  onboardingActive: false,
+  onboardingPrefillName: '',
+  setOnboardingActive: (v, opts = {}) =>
+    set({ onboardingActive: v, onboardingPrefillName: opts.prefillName || '' }),
+
   // Room metadata (from Supabase)
   roomId: null,
   roomName: '',
@@ -44,6 +50,10 @@ export const useRoomStore = create((set, get) => ({
 
   // Knock requests (friend wants to join)
   knockRequests: [], // [{ userId, displayName, color, timestamp }]
+
+  // User-facing error for the room (e.g. furniture placement failure)
+  lastError: null,
+  clearError: () => set({ lastError: null }),
 
   // ======== Room Lifecycle ========
 
@@ -148,9 +158,10 @@ export const useRoomStore = create((set, get) => ({
       onPresenceSync: (state) => {
         const oldParticipants = get().participants;
         const participants = {};
+        let changed = false;
         for (const [_key, presences] of Object.entries(state)) {
           for (const p of presences) {
-            participants[p.userId] = {
+            const next = {
               id: p.userId,
               displayName: p.displayName,
               color: p.color,
@@ -161,18 +172,42 @@ export const useRoomStore = create((set, get) => ({
               gridX: p.gridX ?? null,
               gridY: p.gridY ?? null,
             };
+            const prev = oldParticipants[p.userId];
+            // Preserve the previous object reference when nothing shallow has
+            // changed — keeps memoized selectors and React.memo stable so a
+            // presence sync on an unrelated field doesn't re-render every seat.
+            if (
+              prev &&
+              prev.displayName === next.displayName &&
+              prev.color === next.color &&
+              prev.avatar === next.avatar &&
+              prev.seatFurnitureId === next.seatFurnitureId &&
+              prev.seatIndex === next.seatIndex &&
+              prev.seatType === next.seatType &&
+              prev.gridX === next.gridX &&
+              prev.gridY === next.gridY
+            ) {
+              participants[p.userId] = prev;
+            } else {
+              participants[p.userId] = next;
+              changed = true;
+            }
           }
         }
         // Play sounds for joins/leaves (skip self)
         const myId = user.id;
-        const oldIds = new Set(Object.keys(oldParticipants));
-        const newIds = new Set(Object.keys(participants));
+        const oldIds = Object.keys(oldParticipants);
+        const newIds = Object.keys(participants);
+        const oldIdSet = new Set(oldIds);
+        const newIdSet = new Set(newIds);
         for (const id of newIds) {
-          if (id !== myId && !oldIds.has(id)) playJoinSound();
+          if (id !== myId && !oldIdSet.has(id)) playJoinSound();
         }
         for (const id of oldIds) {
-          if (id !== myId && !newIds.has(id)) playLeaveSound();
+          if (id !== myId && !newIdSet.has(id)) playLeaveSound();
         }
+        if (oldIds.length !== newIds.length) changed = true;
+        if (!changed) return;
         set({ participants });
       },
       onFurnitureAdd: (payload) => {
@@ -309,12 +344,26 @@ export const useRoomStore = create((set, get) => ({
 
   addFurniture: async (type, x, y) => {
     const { roomId, _channel } = get();
-    const saved = await roomService.saveFurnitureAdd(roomId, type, x, y);
-    const item = { id: saved.id, type, x, y };
-    // Add locally immediately
-    set((s) => ({ furniture: [...s.furniture, item] }));
-    // Broadcast to others
-    _channel.send({ type: 'broadcast', event: 'furniture:add', payload: item });
+    if (!roomId || !_channel) {
+      set({ lastError: 'Not connected to room — try rejoining.' });
+      return { success: false };
+    }
+    try {
+      const saved = await roomService.saveFurnitureAdd(roomId, type, x, y);
+      const item = { id: saved.id, type, x, y };
+      set((s) => ({ furniture: [...s.furniture, item], lastError: null }));
+      _channel.send({ type: 'broadcast', event: 'furniture:add', payload: item });
+      return { success: true };
+    } catch (err) {
+      console.error('[roomStore] addFurniture failed:', err);
+      const msg = err?.message || 'Failed to place furniture.';
+      // Supabase RLS denial — the only owner can insert furniture currently
+      const friendly = /row-level security|permission|policy/i.test(msg)
+        ? 'Only the room owner can place furniture right now.'
+        : msg;
+      set({ lastError: friendly });
+      return { success: false, error: friendly };
+    }
   },
 
   moveFurniture: async (id, x, y) => {
@@ -410,8 +459,7 @@ export const useRoomStore = create((set, get) => ({
 
   moveAvatar: (userId, gridX, gridY) => {
     const { _channel } = get();
-    const me = get()._getMe(userId);
-    if (!me || !_channel) return;
+    if (!_channel || !get()._getMe(userId)) return;
 
     // Update local participants immediately for instant visual feedback
     set((s) => ({
@@ -419,33 +467,54 @@ export const useRoomStore = create((set, get) => ({
         ...s.participants,
         [userId]: { ...s.participants[userId], gridX, gridY },
       },
+      _moveTargetX: gridX,
+      _moveTargetY: gridY,
     }));
 
     // Debounce the presence broadcast — avoids triggering a full
-    // onPresenceSync re-render on every rapid click
-    clearTimeout(moveAvatar._t);
-    moveAvatar._t = setTimeout(() => {
-      const current = get();
-      if (!current._channel) return;
-      current._channel.track({
-        userId: me.id,
-        displayName: me.displayName,
-        color: me.color,
-        avatar: me.avatar || null,
-        seatFurnitureId: me.seatFurnitureId,
-        seatIndex: me.seatIndex,
-        gridX,
-        gridY,
+    // onPresenceSync re-render on every rapid click. Read fresh state
+    // inside the timeout so display name / avatar / seat updates are
+    // never sent stale.
+    clearTimeout(get()._moveTimer);
+    const timer = setTimeout(() => {
+      const state = get();
+      if (!state._channel) return;
+      const fresh = state._getMe(userId);
+      if (!fresh) return;
+      const tx = state._moveTargetX ?? gridX;
+      const ty = state._moveTargetY ?? gridY;
+      state._channel.track({
+        userId: fresh.id,
+        displayName: fresh.displayName,
+        color: fresh.color,
+        avatar: fresh.avatar || null,
+        seatFurnitureId: fresh.seatFurnitureId,
+        seatIndex: fresh.seatIndex,
+        gridX: tx,
+        gridY: ty,
       });
     }, 80);
+    set({ _moveTimer: timer });
   },
 
   // ======== Theme (owner broadcasts + persists) ========
 
   setTheme: async (newTheme) => {
-    const { roomId, _channel, participants } = get();
+    const { roomId, _channel, participants, theme: previousTheme } = get();
+    if (!roomId || !_channel) return;
     const shape = ROOM_SHAPES[newTheme] || ROOM_SHAPES['gaming-den'];
-    set({ theme: newTheme });
+
+    try {
+      // Persist first so a DB/RLS failure never strands the client in a state
+      // no one else sees.
+      await roomService.updateRoomTheme(roomId, newTheme);
+    } catch (err) {
+      console.error('[roomStore] setTheme failed:', err);
+      set({ lastError: 'Failed to change theme. Only the room owner can change it.' });
+      return;
+    }
+
+    set({ theme: newTheme, lastError: null });
 
     // Re-position standing users whose grid position is now outside the new shape
     const userId = useAuthStore.getState().user?.id;
@@ -460,8 +529,8 @@ export const useRoomStore = create((set, get) => ({
       }
     }
 
-    await roomService.updateRoomTheme(roomId, newTheme);
     _channel.send({ type: 'broadcast', event: 'room:theme', payload: { theme: newTheme } });
+    void previousTheme; // reserved for future rollback if needed
   },
 
   setRoomName: (roomName) => set({ roomName }),
@@ -476,25 +545,52 @@ export const useRoomStore = create((set, get) => ({
 
   sendInvite: async (knockerUserId, joinCode) => {
     const ch = supabase.channel(`invite:${knockerUserId}`);
-    await new Promise((resolve) => ch.subscribe((status) => {
-      if (status === 'SUBSCRIBED') resolve();
-    }));
-    await ch.send({ type: 'broadcast', event: 'room:invite', payload: { joinCode } });
-    supabase.removeChannel(ch);
+    try {
+      await subscribeWithTimeout(ch, 5000);
+      await ch.send({ type: 'broadcast', event: 'room:invite', payload: { joinCode } });
+    } finally {
+      supabase.removeChannel(ch);
+    }
   },
 
   /** Send a knock to a room (called from friends panel, targeting a specific room channel) */
   sendKnock: async (targetRoomId, user) => {
     // Use a unique channel name so we never collide with the main room:${id} channel
     const knockChannel = supabase.channel(`knock:${targetRoomId}:${Date.now()}`);
-    await new Promise((resolve) => knockChannel.subscribe((status) => {
-      if (status === 'SUBSCRIBED') resolve();
-    }));
-    await knockChannel.send({
-      type: 'broadcast',
-      event: 'room:knock',
-      payload: { userId: user.id, displayName: user.displayName, color: user.color },
-    });
-    supabase.removeChannel(knockChannel);
+    try {
+      await subscribeWithTimeout(knockChannel, 5000);
+      await knockChannel.send({
+        type: 'broadcast',
+        event: 'room:knock',
+        payload: { userId: user.id, displayName: user.displayName, color: user.color },
+      });
+    } finally {
+      supabase.removeChannel(knockChannel);
+    }
   },
 }));
+
+// Helper: subscribe to a Supabase channel with a timeout + terminal-status rejection,
+// so callers never hang forever when a channel fails or is slow to connect.
+function subscribeWithTimeout(channel, timeoutMs = 5000) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error('Channel subscribe timed out'));
+    }, timeoutMs);
+    channel.subscribe((status) => {
+      if (settled) return;
+      if (status === 'SUBSCRIBED') {
+        settled = true;
+        clearTimeout(timer);
+        resolve();
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        settled = true;
+        clearTimeout(timer);
+        reject(new Error(`Channel ${status.toLowerCase()}`));
+      }
+    });
+  });
+}

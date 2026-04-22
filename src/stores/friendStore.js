@@ -19,17 +19,20 @@ export const useFriendStore = create((set, get) => ({
 
   loadFriends: async (userId, silent = false) => {
     if (!silent) set({ loading: true });
-    try {
-      const [friends, pending, blocked] = await Promise.all([
-        friendService.getFriends(userId),
-        friendService.getPendingRequests(userId),
-        friendService.getBlockedUsers(userId),
-      ]);
-      set({ friends, pendingRequests: pending, blockedUsers: blocked, loading: false });
-    } catch (e) {
-      console.error('[friends] Failed to load:', e);
-      if (!silent) set({ loading: false });
-    }
+    const results = await Promise.allSettled([
+      friendService.getFriends(userId),
+      friendService.getPendingRequests(userId),
+      friendService.getBlockedUsers(userId),
+    ]);
+    const [friendsRes, pendingRes, blockedRes] = results;
+    const update = { loading: false };
+    if (friendsRes.status === 'fulfilled') update.friends = friendsRes.value;
+    else console.error('[friends] getFriends failed:', friendsRes.reason);
+    if (pendingRes.status === 'fulfilled') update.pendingRequests = pendingRes.value;
+    else console.error('[friends] getPendingRequests failed:', pendingRes.reason);
+    if (blockedRes.status === 'fulfilled') update.blockedUsers = blockedRes.value;
+    else console.error('[friends] getBlockedUsers failed:', blockedRes.reason);
+    set(update);
   },
 
   // ======== Search ========
