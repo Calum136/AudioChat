@@ -1,7 +1,7 @@
 {
   "name": "sidequest",
   "private": true,
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Cozy multiplayer rooms with voice chat",
   "author": "Calum",
   "type": "module",
@@ -42,7 +42,8 @@
     "publish": {
       "provider": "github",
       "owner": "Calum136",
-      "repo": "AudioChat"
+      "repo": "AudioChat",
+      "private": true
     }
   },
   "dependencies": {

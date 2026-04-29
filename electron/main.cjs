@@ -69,11 +69,14 @@ function setupAutoUpdater() {
   if (isDev) return;
 
   try {
-    process.env.GH_TOKEN = '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';
+    const GH_TOKEN = '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';
+    process.env.GH_TOKEN = GH_TOKEN;
+
     const { autoUpdater } = require('electron-updater');
 
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
+    autoUpdater.requestHeaders = { Authorization: `token ${GH_TOKEN}` };
 
     autoUpdater.on('checking-for-update', () => sendToWindow('update-checking'));
     autoUpdater.on('update-not-available', () => sendToWindow('update-not-available'));
