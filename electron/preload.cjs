@@ -10,8 +10,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onWindowBlur: (cb) => ipcRenderer.on('window-blur', cb),
 
   // Auto-update events
+  onUpdateChecking: (cb) => ipcRenderer.on('update-checking', cb),
+  onUpdateNotAvailable: (cb) => ipcRenderer.on('update-not-available', cb),
   onUpdateAvailable: (cb) => ipcRenderer.on('update-available', (_e, info) => cb(info)),
   onUpdateDownloaded: (cb) => ipcRenderer.on('update-downloaded', (_e, info) => cb(info)),
+  onUpdateError: (cb) => ipcRenderer.on('update-error', (_e, info) => cb(info)),
   restartApp: () => ipcRenderer.send('restart-app'),
 });
 

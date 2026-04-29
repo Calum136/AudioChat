@@ -36,6 +36,13 @@ function createWindow() {
     return { action: 'deny' };
   });
 
+  // Ctrl+Shift+I opens devtools in any build (for debugging)
+  win.webContents.on('before-input-event', (_e, input) => {
+    if (input.control && input.shift && input.key === 'I') {
+      win.webContents.openDevTools();
+    }
+  });
+
   // Forward focus/blur to renderer for presence reconnection
   win.on('focus', () => win.webContents.send('window-focus'));
   win.on('blur', () => win.webContents.send('window-blur'));
@@ -77,15 +84,26 @@ function setupAutoUpdater() {
     }
   });
 
+  autoUpdater.on('checking-for-update', () => {
+    if (mainWindow) mainWindow.webContents.send('update-checking');
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    if (mainWindow) mainWindow.webContents.send('update-not-available');
+  });
+
   autoUpdater.on('error', (err) => {
     console.error('[auto-updater] Error:', err.message);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-error', { message: err.message });
+    }
   });
 
   ipcMain.on('restart-app', () => {
     autoUpdater.quitAndInstall();
   });
 
-  autoUpdater.checkForUpdatesAndNotify();
+  autoUpdater.checkForUpdates();
 }
 
 // ======== App Lifecycle ========
