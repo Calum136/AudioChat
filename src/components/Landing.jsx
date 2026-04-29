@@ -651,10 +651,10 @@ function LobbyHeader({ user, onSignOut, onOpenSettings }) {
         display: 'flex',
         alignItems: 'center',
         gap: 18,
-        background: 'rgba(12,12,24,0.6)',
+        background: 'rgba(15,15,28,0.97)',
         backdropFilter: 'blur(18px)',
         WebkitBackdropFilter: 'blur(18px)',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        borderBottom: '1px solid rgba(255,255,255,0.12)',
         position: 'relative',
         zIndex: 3,
       }}
@@ -678,9 +678,9 @@ function LobbyHeader({ user, onSignOut, onOpenSettings }) {
           alignItems: 'center',
           gap: 10,
           padding: '5px 12px 5px 5px',
-          border: '1px solid rgba(255,255,255,0.07)',
+          border: '1px solid rgba(255,255,255,0.14)',
           borderRadius: 999,
-          background: 'rgba(255,255,255,0.03)',
+          background: 'rgba(255,255,255,0.05)',
         }}
       >
         <PixelAvatar name={displayName} size={28} />
@@ -712,8 +712,8 @@ function LobbyHeader({ user, onSignOut, onOpenSettings }) {
           width: 32,
           height: 32,
           borderRadius: 8,
-          border: '1px solid rgba(255,255,255,0.07)',
-          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.14)',
+          background: 'rgba(255,255,255,0.05)',
           color: 'var(--text-secondary)',
           display: 'flex',
           alignItems: 'center',
@@ -723,11 +723,11 @@ function LobbyHeader({ user, onSignOut, onOpenSettings }) {
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.color = 'var(--text-primary)';
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.28)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.color = 'var(--text-secondary)';
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)';
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
         }}
       >
         <I.settings s={14} />
@@ -739,8 +739,8 @@ function LobbyHeader({ user, onSignOut, onOpenSettings }) {
           width: 32,
           height: 32,
           borderRadius: 8,
-          border: '1px solid rgba(255,255,255,0.07)',
-          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.14)',
+          background: 'rgba(255,255,255,0.05)',
           color: 'var(--text-secondary)',
           display: 'flex',
           alignItems: 'center',
@@ -750,11 +750,11 @@ function LobbyHeader({ user, onSignOut, onOpenSettings }) {
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.color = 'var(--text-primary)';
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.28)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.color = 'var(--text-secondary)';
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)';
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
         }}
       >
         <I.leave s={14} />
@@ -1067,7 +1067,7 @@ export default function Landing() {
               background: 'rgba(12,12,24,0.55)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255,255,255,0.07)',
+              border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: 'var(--r-lg)',
               padding: 10,
               marginBottom: 24,
@@ -1286,10 +1286,10 @@ export default function Landing() {
         <div
           className="lobby-friends-rail"
           style={{
-            background: 'rgba(12,12,24,0.5)',
+            background: 'rgba(15,15,28,0.97)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            borderLeft: '1px solid rgba(255,255,255,0.05)',
+            borderLeft: '1px solid rgba(255,255,255,0.10)',
             display: 'flex',
             flexDirection: 'column',
             minHeight: 0,

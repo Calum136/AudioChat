@@ -23,8 +23,8 @@ function createWindow() {
     // Frameless with custom titlebar vibes
     titleBarStyle: 'hidden',
     titleBarOverlay: {
-      color: '#0a0a14',
-      symbolColor: '#a0a0c0',
+      color: '#0f0f20',
+      symbolColor: '#d8d8f0',
       height: 36,
     },
     autoHideMenuBar: true,
