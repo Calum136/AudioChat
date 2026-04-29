@@ -661,7 +661,7 @@ function LobbyHeader({ user, onSignOut, onOpenSettings }) {
     >
       {/* Brand */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <img src="/logo.png" alt="" style={{ width: 28, height: 28, borderRadius: 6 }} />
+        <img src="./logo.png" alt="" style={{ width: 28, height: 28, borderRadius: 6 }} />
         <span className="title-md" style={{ fontSize: 16, letterSpacing: '-0.01em' }}>
           Sidequest
         </span>
@@ -928,7 +928,7 @@ export default function Landing() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img src="/logo.png" alt="" style={{ width: 28, height: 28, borderRadius: 6 }} />
+            <img src="./logo.png" alt="" style={{ width: 28, height: 28, borderRadius: 6 }} />
             <span className="title-md" style={{ fontSize: 18, letterSpacing: '-0.01em' }}>
               Sidequest
             </span>

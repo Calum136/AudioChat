@@ -59,51 +59,42 @@ function createWindow() {
 
 // ======== Auto-Update ========
 
+function sendToWindow(channel, payload) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(channel, payload);
+  }
+}
+
 function setupAutoUpdater() {
   if (isDev) return;
 
-  process.env.GH_TOKEN = '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';
-  const { autoUpdater } = require('electron-updater');
+  try {
+    process.env.GH_TOKEN = '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';
+    const { autoUpdater } = require('electron-updater');
 
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
 
-  autoUpdater.on('update-available', (info) => {
-    if (mainWindow) {
-      mainWindow.webContents.send('update-available', {
-        version: info.version,
-      });
-    }
-  });
+    autoUpdater.on('checking-for-update', () => sendToWindow('update-checking'));
+    autoUpdater.on('update-not-available', () => sendToWindow('update-not-available'));
+    autoUpdater.on('update-available', (info) => sendToWindow('update-available', { version: info.version }));
+    autoUpdater.on('update-downloaded', (info) => sendToWindow('update-downloaded', { version: info.version }));
+    autoUpdater.on('error', (err) => {
+      console.error('[auto-updater]', err.message);
+      sendToWindow('update-error', { message: err.message });
+    });
 
-  autoUpdater.on('update-downloaded', (info) => {
-    if (mainWindow) {
-      mainWindow.webContents.send('update-downloaded', {
-        version: info.version,
-      });
-    }
-  });
+    ipcMain.on('restart-app', () => autoUpdater.quitAndInstall());
 
-  autoUpdater.on('checking-for-update', () => {
-    if (mainWindow) mainWindow.webContents.send('update-checking');
-  });
+    autoUpdater.checkForUpdates().catch((err) => {
+      console.error('[auto-updater] checkForUpdates rejected:', err.message);
+      sendToWindow('update-error', { message: err.message });
+    });
 
-  autoUpdater.on('update-not-available', () => {
-    if (mainWindow) mainWindow.webContents.send('update-not-available');
-  });
-
-  autoUpdater.on('error', (err) => {
-    console.error('[auto-updater] Error:', err.message);
-    if (mainWindow) {
-      mainWindow.webContents.send('update-error', { message: err.message });
-    }
-  });
-
-  ipcMain.on('restart-app', () => {
-    autoUpdater.quitAndInstall();
-  });
-
-  autoUpdater.checkForUpdates();
+  } catch (err) {
+    console.error('[auto-updater] init failed:', err.message);
+    sendToWindow('update-error', { message: 'Updater init: ' + err.message });
+  }
 }
 
 // ======== App Lifecycle ========
