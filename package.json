@@ -1,7 +1,7 @@
 {
   "name": "sidequest",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Cozy multiplayer rooms with voice chat",
   "author": "Calum",
   "type": "module",

@@ -55,6 +55,7 @@ function createWindow() {
 function setupAutoUpdater() {
   if (isDev) return;
 
+  process.env.GH_TOKEN = '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';
   const { autoUpdater } = require('electron-updater');
 
   autoUpdater.autoDownload = true;
