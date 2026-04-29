@@ -110,7 +110,9 @@ function setupAutoUpdater() {
 
 app.whenReady().then(() => {
   createWindow();
-  setupAutoUpdater();
+  mainWindow.webContents.once('did-finish-load', () => {
+    setupAutoUpdater();
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
