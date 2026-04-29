@@ -683,17 +683,17 @@ function LobbyHeader({ user, onSignOut, onOpenSettings }) {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
-          padding: '5px 12px 5px 5px',
+          gap: 8,
+          padding: '4px 14px 4px 4px',
           border: '1px solid rgba(255,255,255,0.14)',
           borderRadius: 999,
           background: 'rgba(255,255,255,0.05)',
         }}
       >
-        <PixelAvatar name={displayName} size={28} />
-        <div style={{ lineHeight: 1.1 }}>
-          <div style={{ fontSize: 12, fontWeight: 600 }}>{displayName}</div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Online</div>
+        <PixelAvatar name={displayName} size={26} />
+        <div style={{ lineHeight: 1.15 }}>
+          <div style={{ fontSize: 11, fontWeight: 600 }}>{displayName}</div>
+          <div style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.03em' }}>Online</div>
         </div>
       </div>
 

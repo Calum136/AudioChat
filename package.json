@@ -1,7 +1,7 @@
 {
   "name": "sidequest",
   "private": true,
-  "version": "0.4.8",
+  "version": "0.4.9",
   "description": "Cozy multiplayer rooms with voice chat",
   "author": "Calum",
   "type": "module",
@@ -27,7 +27,8 @@
     "win": {
       "target": "nsis",
       "icon": "electron/icon.ico",
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "legalTrademarks": "Calum Kershaw"
     },
     "mac": {
       "target": "dmg",

@@ -2964,6 +2964,7 @@ body {
   height: 100%;
   overflow-y: auto;
   position: relative;
+  padding-top: 4px;
 }
 
 .friends-header {
@@ -2971,6 +2972,7 @@ body {
   align-items: center;
   gap: 0.5rem;
   position: relative;
+  padding: 10px 16px 6px;
 }
 
 .friends-title {
@@ -3688,7 +3690,6 @@ body {
   display: flex;
   align-items: stretch;
   height: 100%;
-  margin-right: -22px; /* flush to the right edge of the header */
   flex-shrink: 0;
 }
 
