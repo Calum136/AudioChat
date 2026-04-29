@@ -9,6 +9,7 @@ import SettingsPage from './SettingsPage';
 import Icon from './Icon';
 import { Aurora, StatusPill, PixelAvatar, I } from './design';
 import WindowControls from './WindowControls';
+import pkg from '../../package.json';
 
 // ========== Theme metadata ==========
 
@@ -666,6 +667,11 @@ function LobbyHeader({ user, onSignOut, onOpenSettings }) {
         <span className="title-md" style={{ fontSize: 13, letterSpacing: '-0.01em' }}>
           Sidequest
         </span>
+        {window.electronAPI?.isElectron && (
+          <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.55, letterSpacing: '0.02em', marginLeft: -2 }}>
+            v{pkg.version}
+          </span>
+        )}
       </div>
 
       {/* Nav placeholder tabs removed until Rooms/Library/Friends pages exist. */}
