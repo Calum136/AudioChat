@@ -5,6 +5,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   isElectron: true,
   platform: process.platform,
 
+  // Window controls
+  minimizeWindow: () => ipcRenderer.send('minimize-window'),
+  maximizeWindow: () => ipcRenderer.send('maximize-window'),
+  closeWindow: () => ipcRenderer.send('close-window'),
+
   // Window focus events (for presence reconnection)
   onWindowFocus: (cb) => ipcRenderer.on('window-focus', cb),
   onWindowBlur: (cb) => ipcRenderer.on('window-blur', cb),

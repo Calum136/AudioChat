@@ -12,6 +12,7 @@ import MusicPlayer from './MusicPlayer';
 import SettingsPage from './SettingsPage';
 import EditRoomModal from './EditRoomModal';
 import { Aurora, StatusPill, InitialAvatar, I } from './design';
+import WindowControls from './WindowControls';
 
 // Map real room.theme keys to accent colours for the top-bar dot + ambient halo.
 const THEME_ACCENTS = {
@@ -394,6 +395,8 @@ export default function AppShell() {
         >
           <I.leave s={12} /> Leave
         </button>
+
+        <WindowControls />
       </div>
 
       {/* ==================== KNOCK NOTIFICATIONS ==================== */}

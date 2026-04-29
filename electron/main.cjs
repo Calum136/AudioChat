@@ -20,13 +20,7 @@ function createWindow() {
       nodeIntegration: false,
       backgroundThrottling: false,
     },
-    // Frameless with custom titlebar vibes
     titleBarStyle: 'hidden',
-    titleBarOverlay: {
-      color: '#0f0f20',
-      symbolColor: '#d8d8f0',
-      height: 36,
-    },
     autoHideMenuBar: true,
   });
 
@@ -42,6 +36,16 @@ function createWindow() {
       win.webContents.openDevTools();
     }
   });
+
+  // Window control handlers
+  ipcMain.removeAllListeners('minimize-window');
+  ipcMain.removeAllListeners('maximize-window');
+  ipcMain.removeAllListeners('close-window');
+  ipcMain.on('minimize-window', () => win.minimize());
+  ipcMain.on('maximize-window', () => {
+    if (win.isMaximized()) win.unmaximize(); else win.maximize();
+  });
+  ipcMain.on('close-window', () => win.close());
 
   // Forward focus/blur to renderer for presence reconnection
   win.on('focus', () => win.webContents.send('window-focus'));

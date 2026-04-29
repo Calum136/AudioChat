@@ -8,6 +8,7 @@ import FriendsPanel from './FriendsPanel';
 import SettingsPage from './SettingsPage';
 import Icon from './Icon';
 import { Aurora, StatusPill, PixelAvatar, I } from './design';
+import WindowControls from './WindowControls';
 
 // ========== Theme metadata ==========
 
@@ -646,11 +647,11 @@ function LobbyHeader({ user, onSignOut, onOpenSettings }) {
       className="lobby-header-new"
       style={{
         flexShrink: 0,
-        height: 64,
-        padding: '0 22px',
+        height: 40,
+        padding: '0 0 0 16px',
         display: 'flex',
         alignItems: 'center',
-        gap: 18,
+        gap: 14,
         background: 'rgba(15,15,28,0.97)',
         backdropFilter: 'blur(18px)',
         WebkitBackdropFilter: 'blur(18px)',
@@ -660,9 +661,9 @@ function LobbyHeader({ user, onSignOut, onOpenSettings }) {
       }}
     >
       {/* Brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <img src="./logo.png" alt="" style={{ width: 28, height: 28, borderRadius: 6 }} />
-        <span className="title-md" style={{ fontSize: 16, letterSpacing: '-0.01em' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <img src="./logo.png" alt="" style={{ width: 22, height: 22, borderRadius: 5 }} />
+        <span className="title-md" style={{ fontSize: 13, letterSpacing: '-0.01em' }}>
           Sidequest
         </span>
       </div>
@@ -720,6 +721,9 @@ function LobbyHeader({ user, onSignOut, onOpenSettings }) {
           justifyContent: 'center',
           cursor: 'pointer',
           transition: 'all 140ms',
+          width: 28,
+          height: 28,
+          borderRadius: 7,
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.color = 'var(--text-primary)';
@@ -747,6 +751,9 @@ function LobbyHeader({ user, onSignOut, onOpenSettings }) {
           justifyContent: 'center',
           cursor: 'pointer',
           transition: 'all 140ms',
+          width: 28,
+          height: 28,
+          borderRadius: 7,
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.color = 'var(--text-primary)';
@@ -759,6 +766,8 @@ function LobbyHeader({ user, onSignOut, onOpenSettings }) {
       >
         <I.leave s={14} />
       </button>
+
+      <WindowControls />
     </div>
   );
 }
@@ -912,6 +921,11 @@ export default function Landing() {
             zIndex: 1,
           }}
         />
+
+        {/* Window controls for Electron auth screen */}
+        <div className="auth-window-controls">
+          <WindowControls />
+        </div>
 
         {/* Top brand bar */}
         <div

@@ -3647,44 +3647,88 @@ body {
 }
 
 /* ==============================================
-   Electron Desktop App
+   Electron Desktop App — Custom window chrome
    ============================================== */
 
-/* Reserve space for window controls (minimize/maximize/close) */
-.electron .app-header {
-  padding-right: 140px;
-}
-
-.electron .dash-header {
-  padding-right: 140px;
+/* Headers are drag zones; interactive children opt out */
+.electron .lobby-header-new,
+.electron .app-header,
+.electron .room-top-bar {
   -webkit-app-region: drag;
 }
 
-.electron .dash-header button,
-.electron .dash-header input,
-.electron .dash-header a,
-.electron .dash-header select {
-  -webkit-app-region: no-drag;
-}
-
-/* Electron drag bar — always-visible drag zone at top of landing page */
-.electron .landing::before {
-  content: '';
-  display: block;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 140px; /* leave space for window controls */
-  height: 36px;
-  -webkit-app-region: drag;
-  z-index: 9000;
-}
-
-/* Ensure all interactive elements inside app-header are not draggable */
+.electron .lobby-header-new button,
+.electron .lobby-header-new input,
+.electron .lobby-header-new a,
+.electron .lobby-header-new select,
+.electron .app-header button,
+.electron .app-header input,
+.electron .app-header a,
 .electron .app-header select,
 .electron .app-header .voice-badge,
-.electron .app-header .join-code {
+.electron .app-header .join-code,
+.electron .room-top-bar button,
+.electron .room-top-bar input,
+.electron .room-top-bar a,
+.electron .room-top-bar select {
   -webkit-app-region: no-drag;
+}
+
+/* Auth screen — entire brand bar drags */
+.electron .auth-brand-bar {
+  -webkit-app-region: drag;
+}
+.electron .auth-brand-bar a,
+.electron .auth-brand-bar button {
+  -webkit-app-region: no-drag;
+}
+
+/* ── Window control buttons ── */
+.window-controls {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  margin-right: -22px; /* flush to the right edge of the header */
+  flex-shrink: 0;
+}
+
+.wc-btn {
+  width: 46px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+  -webkit-app-region: no-drag;
+}
+
+.wc-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.wc-close:hover {
+  background: rgba(232, 93, 117, 0.75);
+  color: #fff;
+}
+
+/* Auth-screen floating window controls */
+.electron .auth-window-controls {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 40px;
+  display: flex;
+  z-index: 9999;
+  -webkit-app-region: no-drag;
+}
+
+.electron .auth-window-controls .wc-btn {
+  height: 40px;
 }
 
 /* ==============================================
@@ -4945,27 +4989,7 @@ html.reduced-motion * {
   }
 }
 
-/* Make the new lobby header draggable in Electron */
-.electron .lobby-header-new {
-  -webkit-app-region: drag;
-  padding-right: 140px;
-}
-.electron .lobby-header-new button,
-.electron .lobby-header-new input,
-.electron .lobby-header-new a,
-.electron .lobby-header-new select {
-  -webkit-app-region: no-drag;
-}
-
-/* Auth screen drag region (Electron) — whole top strip drags */
-.electron .auth-brand-bar {
-  -webkit-app-region: drag;
-  padding-right: 140px;
-}
-.electron .auth-brand-bar a,
-.electron .auth-brand-bar button {
-  -webkit-app-region: no-drag;
-}
+/* Lobby header + auth brand bar Electron rules are in the Electron section above */
 
 /* ==============================================
    Room shell — Claude Design layout overrides
@@ -5040,16 +5064,11 @@ html.reduced-motion * {
   overflow: auto;
 }
 
-/* Electron drag region — entire top bar drags, interactive children don't */
+/* In Electron the room top-bar extends to the right edge so window controls are flush */
 .electron .room-top-bar {
-  -webkit-app-region: drag;
-  padding-right: 140px; /* room for macOS traffic lights / Windows controls */
-}
-.electron .room-top-bar button,
-.electron .room-top-bar input,
-.electron .room-top-bar a,
-.electron .room-top-bar select {
-  -webkit-app-region: no-drag;
+  right: 0 !important;
+  top: 0 !important;
+  border-radius: 0 0 0 var(--r-md) !important;
 }
 
 /* Knock toast spacing tweak so it sits below the new top bar */
