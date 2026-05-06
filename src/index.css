@@ -1255,10 +1255,8 @@ body {
 .room-view {
   flex: 1;
   position: relative;
-  overflow: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
+  min-height: 300px;
 }
 
 .room-view.editing {
