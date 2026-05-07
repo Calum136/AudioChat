@@ -28,28 +28,28 @@ import { FurnitureBody } from './FurnitureModels';
 
 const THEME_3D = {
   'gaming-den': {
-    floorA: '#1a1428', floorB: '#201830',
-    wallColor: '#2a1f38', wallTrim: '#3d2d4a',
+    floorA: '#231a38', floorB: '#2d2045',   // darker purple tiles, visible checker
+    wallColor: '#2e2242', wallTrim: '#44336a',
     bg: '#0d0d18',
-    ambientIntensity: 0.35, dirIntensity: 1.1, dirColor: '#fff4e0',
+    ambientIntensity: 0.55, dirIntensity: 1.2, dirColor: '#fff4e0',
   },
   'scifi-lounge': {
-    floorA: '#0d1a2e', floorB: '#122038',
+    floorA: '#0e2040', floorB: '#142850',   // deep navy/teal tiles
     wallColor: null,
     bg: '#080d1a',
-    ambientIntensity: 0.3, dirIntensity: 0.9, dirColor: '#c0e8ff',
+    ambientIntensity: 0.5, dirIntensity: 1.0, dirColor: '#c0e8ff',
   },
   'fantasy-tavern': {
-    floorA: '#2a1810', floorB: '#321c12',
-    wallColor: '#3a2818', wallTrim: '#5a4020',
+    floorA: '#3a2018', floorB: '#4a2a1c',   // warm wood-plank tones
+    wallColor: '#3e2c1a', wallTrim: '#6a4e28',
     bg: '#140e08',
-    ambientIntensity: 0.4, dirIntensity: 0.95, dirColor: '#ffe8c0',
+    ambientIntensity: 0.6, dirIntensity: 1.0, dirColor: '#ffe8c0',
   },
   'retro-arcade': {
-    floorA: '#1a0d28', floorB: '#200d30',
+    floorA: '#200f38', floorB: '#280f42',   // deep magenta/violet tiles
     wallColor: null,
     bg: '#100820',
-    ambientIntensity: 0.28, dirIntensity: 0.85, dirColor: '#e0c0ff',
+    ambientIntensity: 0.48, dirIntensity: 0.95, dirColor: '#e0c0ff',
   },
 };
 
@@ -220,16 +220,28 @@ function FurnitureItem3D({ item, isEditing, onDragStart }) {
       ))}
 
       {isEditing && !hasOccupants && (
-        <Html position={[0, 2.8, 0]} center distanceFactor={10}>
-          <button
-            style={{
-              background: '#c83030', color: '#fff', border: 'none',
-              borderRadius: '50%', width: 22, height: 22, cursor: 'pointer',
-              fontSize: 14, lineHeight: '22px', fontWeight: 'bold',
-            }}
-            onClick={(e) => { e.stopPropagation(); removeFurniture(item.id); }}
-          >×</button>
-        </Html>
+        // Pure 3D delete marker — avoids drei Html portal issues in headless/no-GPU envs.
+        // Two thin crossed boxes form an × at 0.25 world units above the furniture top.
+        <group
+          position={[0, 2.8, 0]}
+          onClick={(e) => { e.stopPropagation(); removeFurniture(item.id); }}
+          onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer'; }}
+          onPointerOut={() => { document.body.style.cursor = ''; }}
+        >
+          <mesh rotation={[0, 0, Math.PI / 4]}>
+            <boxGeometry args={[0.38, 0.08, 0.08]} />
+            <meshBasicMaterial color="#dd2222" />
+          </mesh>
+          <mesh rotation={[0, 0, -Math.PI / 4]}>
+            <boxGeometry args={[0.38, 0.08, 0.08]} />
+            <meshBasicMaterial color="#dd2222" />
+          </mesh>
+          {/* Clickable hitbox (invisible sphere for easier clicking) */}
+          <mesh>
+            <sphereGeometry args={[0.28, 8, 6]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
+        </group>
       )}
     </group>
   );
@@ -388,36 +400,6 @@ function FurnitureLights({ furniture }) {
   );
 }
 
-// ─── Camera controller: orthographic isometric, auto-fit + user zoom ─────────
-
-function IsoCamera({ shape, userZoom }) {
-  const ref = useRef();
-  const { size } = useThree();
-  const [cx, , cz] = roomCenter(shape.gridW, shape.gridH);
-
-  // Compute camera position for isometric view (45° azimuth, ~35° elevation)
-  const D = 30;
-  const camPos = useMemo(() => [cx + D, D * 0.85, cz + D], [cx, cz]);
-
-  // Auto-fit zoom: scale so the room fills the canvas at userZoom=1
-  const baseZoom = useMemo(() => {
-    const W = (shape.gridW + shape.gridH) * TILE_UNIT * Math.SQRT2 * 0.5 + 5;
-    const H = (shape.gridW + shape.gridH) * TILE_UNIT * Math.SQRT2 * 0.25 + 8;
-    return Math.min(size.width / W, size.height / H) * 0.88;
-  }, [shape, size.width, size.height]);
-
-  useEffect(() => {
-    const cam = ref.current;
-    if (!cam) return;
-    cam.position.set(...camPos);
-    cam.lookAt(cx, 0, cz);
-    cam.zoom = baseZoom * userZoom;
-    cam.updateProjectionMatrix();
-  }, [camPos, cx, cz, baseZoom, userZoom]);
-
-  return <perspectiveCamera ref={ref} />;
-}
-
 // ─── Scene contents (must be inside Canvas for useThree) ─────────────────────
 
 function SceneContents({ theme, userZoom, onFloorClick }) {
@@ -440,14 +422,23 @@ function SceneContents({ theme, userZoom, onFloorClick }) {
 
   // Setup camera manually (OrthographicCamera for isometric)
   useEffect(() => {
+    if (size.width < 10 || size.height < 10) return;
     const D = 30;
     const fitW = (shape.gridW + shape.gridH) * TILE_UNIT * Math.SQRT2 * 0.5 + 5;
-    const fitH = (shape.gridW + shape.gridH) * TILE_UNIT * Math.SQRT2 * 0.25 + 8;
-    const baseZoom = Math.min(size.width / fitW, size.height / fitH) * 0.88;
+    // Include wall height (3.8) in the vertical fit so walls don't get clipped
+    const fitH = (shape.gridW + shape.gridH) * TILE_UNIT * Math.SQRT2 * 0.25 + 10;
+    const baseZoom = Math.min(size.width / fitW, size.height / fitH) * 0.93;
 
-    camera.position.set(cx + D, D * 0.85, cz + D);
+    // Explicitly set frustum bounds so updateProjectionMatrix() uses the correct size.
+    // R3F may not have updated left/right/top/bottom yet when this runs on initial mount.
+    camera.left = size.width / -2;
+    camera.right = size.width / 2;
+    camera.top = size.height / 2;
+    camera.bottom = size.height / -2;
     camera.zoom = baseZoom * userZoom;
-    camera.lookAt(cx, 0, cz);
+    camera.position.set(cx + D, D * 0.85, cz + D);
+    // Look at mid-height of the room so walls + floor are both centred vertically
+    camera.lookAt(cx, 1.2, cz);
     camera.updateProjectionMatrix();
   }, [camera, cx, cz, shape, size.width, size.height, userZoom]);
 
@@ -557,11 +548,11 @@ function SceneContents({ theme, userZoom, onFloorClick }) {
 export default function RoomScene3D({ theme, zoom = 1, onFloorClick }) {
   return (
     <Canvas
-      shadows
+      shadows={{ type: THREE.PCFShadowMap }}
       orthographic
       camera={{ zoom: 26, near: 0.1, far: 500 }}
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-      gl={{ antialias: true, alpha: false }}
+      gl={{ antialias: true, alpha: false, preserveDrawingBuffer: true }}
       dpr={[1, 1.5]}
     >
       <SceneContents theme={theme} userZoom={zoom} onFloorClick={onFloorClick} />

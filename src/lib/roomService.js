@@ -93,6 +93,14 @@ export async function saveFurnitureMove(furnitureId, x, y) {
   if (error) throw error;
 }
 
+export async function saveFurnitureFlip(furnitureId, flipped) {
+  const { error } = await supabase
+    .from('furniture')
+    .update({ flipped })
+    .eq('id', furnitureId);
+  if (error) throw error;
+}
+
 export async function deleteRoom(roomId) {
   // Delete all furniture in the room first, then the room
   const { error: furErr } = await supabase

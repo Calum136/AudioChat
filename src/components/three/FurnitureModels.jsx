@@ -14,7 +14,6 @@
 
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { RoundedBox } from '@react-three/drei';
 
 // ─── Shared material helpers ─────────────────────────────────────────────────
 

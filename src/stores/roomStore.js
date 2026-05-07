@@ -154,6 +154,7 @@ export const useRoomStore = create((set, get) => ({
         type: f.type,
         x: needsMigration ? Math.min(Math.floor(f.x / 80), 7) : (f.x ?? 0),
         y: needsMigration ? Math.min(Math.floor(f.y / 80), 7) : (f.y ?? 0),
+        flipped: f.flipped ?? false,
       };
     });
 
@@ -381,16 +382,17 @@ export const useRoomStore = create((set, get) => ({
     _channel.send({ type: 'broadcast', event: 'furniture:move', payload: { id, x, y } });
   },
 
-  flipFurniture: (id) => {
+  flipFurniture: async (id) => {
     const { _channel } = get();
     set((s) => ({
       furniture: s.furniture.map((f) =>
         f.id === id ? { ...f, flipped: !f.flipped } : f
       ),
     }));
-    if (_channel) {
-      const item = get().furniture.find((f) => f.id === id);
-      if (item) {
+    const item = get().furniture.find((f) => f.id === id);
+    if (item) {
+      await roomService.saveFurnitureFlip(id, item.flipped);
+      if (_channel) {
         _channel.send({ type: 'broadcast', event: 'furniture:flip', payload: { id, flipped: item.flipped } });
       }
     }
