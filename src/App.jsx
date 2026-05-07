@@ -7,8 +7,16 @@ import AppShell from './components/AppShell';
 import Onboarding from './components/Onboarding';
 import UpdateNotification from './components/UpdateNotification';
 import ErrorBoundary from './components/ErrorBoundary';
+import DemoRoom from './components/DemoRoom';
+
+const IS_DEMO = window.location.hash === '#demo' || window.location.hash.startsWith('#demo/');
 
 export default function App() {
+  if (IS_DEMO) return <DemoRoom />;
+  return <AppWithAuth />;
+}
+
+function AppWithAuth() {
   const view = useRoomStore((s) => s.view);
   const roomId = useRoomStore((s) => s.roomId);
   const onboardingActive = useRoomStore((s) => s.onboardingActive);

@@ -3,11 +3,9 @@
  * Seating items have `seats` arrays that create voice-call slots.
  * Decor items have no seats (purely visual).
  *
- * `sprite` references a key in FURNITURE_SPRITES (pixel art).
- * `icon` kept for backward compat / palette display.
- * `tileW` / `tileH` define the isometric grid footprint.
- *
- * Seat offsets are now relative to the sprite's render position (pixels from top-left).
+ * `tileW` / `tileH` define the grid footprint (in tiles).
+ * `seats[].pos3d` — local [x, y, z] position within the furniture group
+ *   for the 3D seat marker/avatar. Y is height above the floor.
  */
 export const FURNITURE_CATALOG = {
   couch: {
@@ -18,8 +16,8 @@ export const FURNITURE_CATALOG = {
     tileH: 1,
     category: 'seating',
     seats: [
-      { offsetX: -20, offsetY: -20, label: 'Left cushion' },
-      { offsetX: 20, offsetY: -20, label: 'Right cushion' },
+      { offsetX: -20, offsetY: -20, label: 'Left cushion',  pos3d: [-0.9, 0.45, 0.1] },
+      { offsetX:  20, offsetY: -20, label: 'Right cushion', pos3d: [ 0.9, 0.45, 0.1] },
     ],
   },
   beanbag: {
@@ -30,7 +28,7 @@ export const FURNITURE_CATALOG = {
     tileH: 1,
     category: 'seating',
     seats: [
-      { offsetX: 0, offsetY: -20, label: 'Bean bag' },
+      { offsetX: 0, offsetY: -20, label: 'Bean bag', pos3d: [0, 0.65, 0] },
     ],
   },
   barstool: {
@@ -41,7 +39,7 @@ export const FURNITURE_CATALOG = {
     tileH: 1,
     category: 'seating',
     seats: [
-      { offsetX: 0, offsetY: -22, label: 'Stool' },
+      { offsetX: 0, offsetY: -22, label: 'Stool', pos3d: [0, 1.1, 0] },
     ],
   },
   swing: {
@@ -52,7 +50,7 @@ export const FURNITURE_CATALOG = {
     tileH: 1,
     category: 'seating',
     seats: [
-      { offsetX: 0, offsetY: -10, label: 'Swing seat' },
+      { offsetX: 0, offsetY: -10, label: 'Swing seat', pos3d: [0, 0.9, 0] },
     ],
   },
   gamingchair: {
@@ -63,7 +61,7 @@ export const FURNITURE_CATALOG = {
     tileH: 1,
     category: 'seating',
     seats: [
-      { offsetX: 0, offsetY: -20, label: 'Gaming chair' },
+      { offsetX: 0, offsetY: -20, label: 'Gaming chair', pos3d: [0, 0.65, 0.1] },
     ],
   },
   floorcushion: {
@@ -74,7 +72,7 @@ export const FURNITURE_CATALOG = {
     tileH: 1,
     category: 'seating',
     seats: [
-      { offsetX: 0, offsetY: -18, label: 'Cushion' },
+      { offsetX: 0, offsetY: -18, label: 'Cushion', pos3d: [0, 0.18, 0] },
     ],
   },
   table: {
@@ -85,8 +83,8 @@ export const FURNITURE_CATALOG = {
     tileH: 1,
     category: 'decor',
     seats: [
-      { offsetX: -20, offsetY: 20, label: 'Stand at table', type: 'stand' },
-      { offsetX: 20, offsetY: 20, label: 'Stand at table', type: 'stand' },
+      { offsetX: -20, offsetY: 20, label: 'Stand at table', type: 'stand', pos3d: [-0.6, 0, 0.7] },
+      { offsetX:  20, offsetY: 20, label: 'Stand at table', type: 'stand', pos3d: [ 0.6, 0, 0.7] },
     ],
   },
   shelf: {
@@ -125,7 +123,7 @@ export const FURNITURE_CATALOG = {
     tileH: 1,
     category: 'decor',
     seats: [
-      { offsetX: 0, offsetY: 30, label: 'Play arcade', type: 'stand' },
+      { offsetX: 0, offsetY: 30, label: 'Play arcade', type: 'stand', pos3d: [0, 0, 0.9] },
     ],
     light: { radius: 2, color: 'rgba(42, 85, 140, 0.10)' },
   },
@@ -137,7 +135,7 @@ export const FURNITURE_CATALOG = {
     tileH: 1,
     category: 'decor',
     seats: [
-      { offsetX: 18, offsetY: 25, label: 'Browse music', type: 'stand' },
+      { offsetX: 18, offsetY: 25, label: 'Browse music', type: 'stand', pos3d: [0.6, 0, 0.8] },
     ],
     light: { radius: 2, color: 'rgba(204, 85, 85, 0.10)' },
   },
@@ -149,7 +147,7 @@ export const FURNITURE_CATALOG = {
     tileH: 1,
     category: 'decor',
     seats: [
-      { offsetX: 0, offsetY: 35, label: 'Watch TV', type: 'stand' },
+      { offsetX: 0, offsetY: 35, label: 'Watch TV', type: 'stand', pos3d: [0, 0, 0.9] },
     ],
     light: { radius: 2, color: 'rgba(42, 85, 140, 0.12)' },
   },
@@ -220,9 +218,9 @@ export const FURNITURE_CATALOG = {
     tileH: 1,
     category: 'decor',
     seats: [
-      { offsetX: -40, offsetY: 25, label: 'Sit at bar', type: 'sit' },
-      { offsetX: 0, offsetY: 25, label: 'Sit at bar', type: 'sit' },
-      { offsetX: 40, offsetY: 25, label: 'Sit at bar', type: 'sit' },
+      { offsetX: -40, offsetY: 25, label: 'Sit at bar', type: 'sit', pos3d: [-1.8, 0.75, 0.7] },
+      { offsetX:   0, offsetY: 25, label: 'Sit at bar', type: 'sit', pos3d: [   0, 0.75, 0.7] },
+      { offsetX:  40, offsetY: 25, label: 'Sit at bar', type: 'sit', pos3d: [ 1.8, 0.75, 0.7] },
     ],
   },
   listencouch: {
@@ -233,8 +231,8 @@ export const FURNITURE_CATALOG = {
     tileH: 1,
     category: 'seating',
     seats: [
-      { offsetX: -20, offsetY: -20, label: 'Listen only (left)', type: 'listen' },
-      { offsetX: 20, offsetY: -20, label: 'Listen only (right)', type: 'listen' },
+      { offsetX: -20, offsetY: -20, label: 'Listen only (left)',  type: 'listen', pos3d: [-0.9, 0.45, 0.1] },
+      { offsetX:  20, offsetY: -20, label: 'Listen only (right)', type: 'listen', pos3d: [ 0.9, 0.45, 0.1] },
     ],
   },
   listencushion: {
@@ -245,7 +243,7 @@ export const FURNITURE_CATALOG = {
     tileH: 1,
     category: 'seating',
     seats: [
-      { offsetX: 0, offsetY: -18, label: 'Listen only', type: 'listen' },
+      { offsetX: 0, offsetY: -18, label: 'Listen only', type: 'listen', pos3d: [0, 0.18, 0] },
     ],
   },
   afkbeanbag: {
@@ -256,7 +254,7 @@ export const FURNITURE_CATALOG = {
     tileH: 1,
     category: 'seating',
     seats: [
-      { offsetX: 0, offsetY: -20, label: 'AFK zone', type: 'afk' },
+      { offsetX: 0, offsetY: -20, label: 'AFK zone', type: 'afk', pos3d: [0, 0.65, 0] },
     ],
   },
 };

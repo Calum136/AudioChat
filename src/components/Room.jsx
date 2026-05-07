@@ -2,14 +2,9 @@ import { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import { useRoomStore } from '../stores/roomStore';
 import { THEMES } from '../data/themes';
 import { FURNITURE_CATALOG } from '../data/furniture';
-import { FLOOR_TILES } from '../data/sprites/floorSprites';
-import { WALL_SPRITES, WALL_H, HALF_TILE, TILE_HALF_H, getWallSprites } from '../data/sprites/wallSprites';
-import { renderPixelGrid } from '../lib/spriteRenderer';
-import { isoToScreen, screenToIso, snapToGrid, isInBounds, getDepth, TILE_W, TILE_H } from '../lib/isoGrid';
-import { useAuthStore } from '../stores/authStore';
 import { ROOM_SHAPES, isInMask } from '../data/roomShapes';
-import FurnitureItem from './FurnitureItem';
-import StandingAvatar from './StandingAvatar';
+import { useAuthStore } from '../stores/authStore';
+import RoomScene3D from './three/RoomScene3D';
 
 export default function Room() {
   const furniture = useRoomStore((s) => s.furniture);
@@ -22,227 +17,78 @@ export default function Room() {
   const selectedType = useRoomStore((s) => s.selectedFurnitureType);
   const setSelectedType = useRoomStore((s) => s.setSelectedFurnitureType);
   const user = useAuthStore((s) => s.user);
-  const flipFurniture = useRoomStore((s) => s.flipFurniture);
   const lastError = useRoomStore((s) => s.lastError);
   const clearError = useRoomStore((s) => s.clearError);
-  const roomRef = useRef(null);
   const themeData = THEMES[theme];
   const [zoom, setZoom] = useState(1);
 
-  // Get shape for current theme
   const shape = ROOM_SHAPES[theme] || ROOM_SHAPES['gaming-den'];
-  const ROOM_GRID_W = shape.gridW;
-  const ROOM_GRID_H = shape.gridH;
-  const mask = shape.mask;
 
-  // Auto-fit zoom: scale room to fill the viewport on mount and resize.
-  // Bias toward a larger default zoom so the iso grid isn't lost in empty space.
-  useEffect(() => {
-    const calcFitZoom = () => {
-      const container = roomRef.current;
-      if (!container) return;
-      const totalW = (ROOM_GRID_W + ROOM_GRID_H) * (TILE_W / 2);
-      const totalH = (ROOM_GRID_W + ROOM_GRID_H) * (TILE_H / 2) + TILE_H + (shape.hasWalls ? WALL_H : 0);
-      // Tight padding so the room feels present; allow a bit more breathing on top.
-      const padW = 24;
-      const padH = 80;
-      const fitW = (container.clientWidth - padW) / totalW;
-      const fitH = (container.clientHeight - padH) / totalH;
-      // Take the tightest dimension but allow up to 2.5x so small rooms aren't tiny.
-      const fit = Math.min(fitW, fitH, 2.5);
-      setZoom(Math.max(0.6, Math.round(fit * 20) / 20));
-    };
-    calcFitZoom();
-    window.addEventListener('resize', calcFitZoom);
-    return () => window.removeEventListener('resize', calcFitZoom);
-  }, [theme, ROOM_GRID_W, ROOM_GRID_H, shape.hasWalls]);
-
-  // Zoom handler (mouse wheel)
-  const handleWheel = useCallback((e) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      setZoom((z) => Math.min(2, Math.max(0.4, z + (e.deltaY > 0 ? -0.1 : 0.1))));
-    }
-  }, []);
-
-  // Generate floor tile image for current theme
-  const floorTileUrl = useMemo(() => {
-    const tile = FLOOR_TILES[theme];
-    if (!tile) return null;
-    return renderPixelGrid(tile.grid, tile.palette, 1);
-  }, [theme]);
-
-  // Generate wall images for current theme (dynamic based on grid size)
-  const wallData = useMemo(() => {
-    if (!shape.hasWalls) return null;
-    const sprites = getWallSprites(theme, ROOM_GRID_W);
-    if (!sprites) return null;
-    return {
-      left: {
-        url: renderPixelGrid(sprites.left.grid, sprites.left.palette, 1),
-        width: sprites.left.width,
-        height: sprites.left.height,
-      },
-      right: {
-        url: renderPixelGrid(sprites.right.grid, sprites.right.palette, 1),
-        width: sprites.right.width,
-        height: sprites.right.height,
-      },
-      corner: {
-        url: renderPixelGrid(sprites.corner.grid, sprites.corner.palette, 1),
-        width: sprites.corner.width,
-        height: sprites.corner.height,
-      },
-    };
-  }, [theme, shape.hasWalls, ROOM_GRID_W]);
-
-  // Calculate room origin — shifted down to make room for walls above
-  const roomPixelWidth = (ROOM_GRID_W + ROOM_GRID_H) * (TILE_W / 2);
-  const roomPixelHeight = (ROOM_GRID_W + ROOM_GRID_H) * (TILE_H / 2);
-  const originX = ROOM_GRID_H * (TILE_W / 2);
-  const originY = shape.hasWalls ? WALL_H : 0;
-
-  // Generate floor tile positions (respecting shape mask)
-  const floorTiles = useMemo(() => {
-    const tiles = [];
-    for (let gx = 0; gx < ROOM_GRID_W; gx++) {
-      for (let gy = 0; gy < ROOM_GRID_H; gy++) {
-        if (!isInMask(gx, gy, mask)) continue;
-        const { x, y } = isoToScreen(gx, gy, originX, originY);
-        tiles.push({ gx, gy, x, y });
-      }
-    }
-    return tiles;
-  }, [ROOM_GRID_W, ROOM_GRID_H, mask, originX, originY]);
-
-  // Build occupied cell set for collision detection
+  // Occupied cells for collision detection
   const occupiedCells = useMemo(() => {
     const set = new Set();
     for (const f of furniture) {
       const cat = FURNITURE_CATALOG[f.type];
       if (!cat) continue;
-      for (let dx = 0; dx < cat.tileW; dx++) {
-        for (let dy = 0; dy < cat.tileH; dy++) {
+      for (let dx = 0; dx < cat.tileW; dx++)
+        for (let dy = 0; dy < cat.tileH; dy++)
           set.add(`${f.x + dx},${f.y + dy}`);
-        }
-      }
     }
     return set;
   }, [furniture]);
 
-  // Light map: accumulate light from emitting furniture onto floor tiles
-  const lightMap = useMemo(() => {
-    const map = new Map();
-    for (const f of furniture) {
-      const cat = FURNITURE_CATALOG[f.type];
-      if (!cat || !cat.light) continue;
-      const { radius, color } = cat.light;
-      for (let gx = 0; gx < ROOM_GRID_W; gx++) {
-        for (let gy = 0; gy < ROOM_GRID_H; gy++) {
-          if (!isInMask(gx, gy, mask)) continue;
-          const dist = Math.abs(gx - f.x) + Math.abs(gy - f.y);
-          if (dist <= radius) {
-            const falloff = 1 - dist / (radius + 1);
-            const key = `${gx},${gy}`;
-            const existing = map.get(key);
-            if (existing) {
-              existing.opacity = Math.min(1, existing.opacity + falloff * 0.8);
-            } else {
-              map.set(key, { color, opacity: falloff * 0.8 });
-            }
-          }
-        }
-      }
+  // Zoom via mouse wheel (Ctrl/Cmd held)
+  const handleWheel = useCallback((e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      setZoom((z) => Math.min(2, Math.max(0.4, z + (e.deltaY > 0 ? -0.08 : 0.08))));
     }
-    return map;
-  }, [furniture, ROOM_GRID_W, ROOM_GRID_H, mask]);
+  }, []);
 
-  // Place furniture at grid coords (shared by drag-drop and click-to-place)
-  const placeFurnitureAt = useCallback(async (type, screenX, screenY) => {
-    if (!type || !FURNITURE_CATALOG[type]) return false;
+  // Floor cell click: place furniture (edit) or move avatar (normal)
+  const handleFloorClick = useCallback(async (gx, gy) => {
+    if (gx < 0 || gy < 0 || gx >= shape.gridW || gy >= shape.gridH) return;
+    if (!isInMask(gx, gy, shape.mask)) return;
 
-    const floorEl = roomRef.current?.querySelector('.iso-floor');
-    if (!floorEl) return false;
-    const rect = floorEl.getBoundingClientRect();
-    const sx = (screenX - rect.left) / zoom;
-    const sy = (screenY - rect.top) / zoom;
-
-    const raw = screenToIso(sx, sy, originX, originY);
-    const { gx, gy } = snapToGrid(raw.gx, raw.gy);
-
-    const cat = FURNITURE_CATALOG[type];
-    if (!isInBounds(gx, gy, ROOM_GRID_W, ROOM_GRID_H)) return false;
-    if (gx + cat.tileW > ROOM_GRID_W || gy + cat.tileH > ROOM_GRID_H) return false;
-
-    // Check all cells are within mask and not occupied
-    for (let dx = 0; dx < cat.tileW; dx++) {
-      for (let dy = 0; dy < cat.tileH; dy++) {
-        if (!isInMask(gx + dx, gy + dy, mask)) return false;
-        if (occupiedCells.has(`${gx + dx},${gy + dy}`)) return false;
-      }
+    if (isEditing && selectedType) {
+      const cat = FURNITURE_CATALOG[selectedType];
+      if (!cat) return;
+      if (gx + cat.tileW > shape.gridW || gy + cat.tileH > shape.gridH) return;
+      for (let dx = 0; dx < cat.tileW; dx++)
+        for (let dy = 0; dy < cat.tileH; dy++)
+          if (!isInMask(gx + dx, gy + dy, shape.mask) || occupiedCells.has(`${gx + dx},${gy + dy}`)) return;
+      const result = await addFurniture(selectedType, gx, gy);
+      if (result?.success) setSelectedType(null);
+      return;
     }
 
-    const result = await addFurniture(type, gx, gy);
-    return result?.success === true;
-  }, [addFurniture, originX, originY, occupiedCells, zoom, ROOM_GRID_W, ROOM_GRID_H, mask]);
+    if (!isEditing && user) {
+      const me = participants[user.id];
+      if (me?.seatFurnitureId) standUp(user.id);
+      moveAvatar(user.id, gx, gy);
+    }
+  }, [isEditing, selectedType, shape, occupiedCells, addFurniture, setSelectedType, user, participants, standUp, moveAvatar]);
 
-  // Drop handler: convert screen coords to grid coords
+  // Drag-and-drop from palette onto the canvas
   const handleDragOver = useCallback((e) => {
     if (!isEditing) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
   }, [isEditing]);
 
+  // For drag-drop we can't easily get 3D coords without a raycaster,
+  // so we convert it to a click-to-place using the selectedType system.
   const handleDrop = useCallback((e) => {
     if (!isEditing) return;
     e.preventDefault();
     const type = e.dataTransfer.getData('furniture-type');
-    placeFurnitureAt(type, e.clientX, e.clientY);
-  }, [isEditing, placeFurnitureAt]);
-
-  // Click handler: furniture placement (edit mode) or avatar movement (normal mode)
-  const handleClick = useCallback(async (e) => {
-    if (isEditing && selectedType) {
-      const ok = await placeFurnitureAt(selectedType, e.clientX, e.clientY);
-      if (ok) setSelectedType(null);
-      return;
-    }
-
-    if (!isEditing && user) {
-      const floorEl = roomRef.current?.querySelector('.iso-floor');
-      if (!floorEl) return;
-      const rect = floorEl.getBoundingClientRect();
-      const sx = (e.clientX - rect.left) / zoom;
-      const sy = (e.clientY - rect.top) / zoom;
-      const raw = screenToIso(sx, sy, originX, originY);
-      const { gx, gy } = snapToGrid(raw.gx, raw.gy);
-      if (isInBounds(gx, gy, ROOM_GRID_W, ROOM_GRID_H) && isInMask(gx, gy, mask)) {
-        // If currently seated, clicking anywhere on the floor stands us up
-        // AND moves the avatar to the clicked cell (stopPropagation on
-        // SeatMarker / FurnitureItem prevents this firing when clicking a seat).
-        const me = participants[user.id];
-        if (me?.seatFurnitureId) {
-          standUp(user.id);
-        }
-        moveAvatar(user.id, gx, gy);
-      }
-    }
-  }, [isEditing, selectedType, placeFurnitureAt, setSelectedType, user, moveAvatar, standUp, participants, originX, originY, zoom, ROOM_GRID_W, ROOM_GRID_H, mask]);
-
-  // Sort furniture by depth for correct overlapping, hide items on void cells
-  const sortedFurniture = useMemo(() => {
-    return [...furniture]
-      .filter((f) => isInBounds(f.x, f.y, ROOM_GRID_W, ROOM_GRID_H) && isInMask(f.x, f.y, mask))
-      .sort((a, b) => (a.x + a.y) - (b.x + b.y));
-  }, [furniture, ROOM_GRID_W, ROOM_GRID_H, mask]);
+    if (type) setSelectedType(type);
+  }, [isEditing, setSelectedType]);
 
   const totalSeats = furniture.reduce((sum, f) => {
     const cat = FURNITURE_CATALOG[f.type];
     return sum + (cat ? cat.seats.length : 0);
   }, 0);
-
-  // Determine background class for themed rooms
-  const bgClass = !shape.hasWalls ? `room-bg-${theme}` : '';
 
   return (
     <div className="room-container">
@@ -258,193 +104,27 @@ export default function Room() {
           {zoom !== 1 && <button className="zoom-btn" onClick={() => setZoom(1)}>Reset</button>}
         </span>
       </div>
+
       <div
-        ref={roomRef}
-        className={`room-view ${isEditing ? 'editing' : ''} ${selectedType ? 'placing' : ''} ${bgClass}`}
-        style={{ background: themeData.roomBg }}
+        className={`room-view ${isEditing ? 'editing' : ''} ${selectedType ? 'placing' : ''}`}
+        style={{ background: themeData.roomBg, position: 'relative' }}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
-        onClick={handleClick}
         onWheel={handleWheel}
       >
-        {/* Isometric room with pixel art walls */}
-        <div
-          className="iso-floor"
-          style={{
-            transform: `scale(${zoom})`,
-            transformOrigin: 'center center',
-            width: roomPixelWidth,
-            height: roomPixelHeight + TILE_H + (shape.hasWalls ? WALL_H : 0),
-            position: 'relative',
-          }}
-        >
-          {/* Walls — only rendered for themes with hasWalls */}
-          {wallData && (
-            <>
-              {/* Left wall */}
-              {(() => {
-                const { x, y } = isoToScreen(0, 0, originX, originY);
-                return (
-                  <img
-                    src={wallData.left.url}
-                    className="wall-tile"
-                    style={{
-                      position: 'absolute',
-                      left: x,
-                      top: y - WALL_H,
-                      width: wallData.left.width,
-                      height: wallData.left.height,
-                      zIndex: 0,
-                    }}
-                    draggable={false}
-                    alt=""
-                  />
-                );
-              })()}
-
-              {/* Right wall */}
-              {(() => {
-                const { x, y } = isoToScreen(0, 0, originX, originY);
-                return (
-                  <img
-                    src={wallData.right.url}
-                    className="wall-tile"
-                    style={{
-                      position: 'absolute',
-                      left: x - wallData.right.width,
-                      top: y - WALL_H,
-                      width: wallData.right.width,
-                      height: wallData.right.height,
-                      zIndex: 0,
-                    }}
-                    draggable={false}
-                    alt=""
-                  />
-                );
-              })()}
-
-              {/* Corner column */}
-              {(() => {
-                const { x, y } = isoToScreen(0, 0, originX, originY);
-                return (
-                  <img
-                    src={wallData.corner.url}
-                    className="wall-tile"
-                    style={{
-                      position: 'absolute',
-                      left: x - wallData.corner.width / 2,
-                      top: y - WALL_H,
-                      width: wallData.corner.width,
-                      height: wallData.corner.height,
-                      zIndex: 0,
-                    }}
-                    draggable={false}
-                    alt=""
-                  />
-                );
-              })()}
-            </>
-          )}
-
-          {/* Floor tiles */}
-          {floorTiles.map(({ gx, gy, x, y }) => (
-            <img
-              key={`${gx}-${gy}`}
-              src={floorTileUrl}
-              className="floor-tile"
-              style={{
-                position: 'absolute',
-                left: x - TILE_W / 2,
-                top: y,
-                width: TILE_W,
-                height: TILE_H,
-              }}
-              draggable={false}
-              alt=""
-            />
-          ))}
-
-          {/* Lighting overlay */}
-          {floorTiles.map(({ gx, gy, x, y }) => {
-            const light = lightMap.get(`${gx},${gy}`);
-            if (!light) return null;
-            return (
-              <div
-                key={`light-${gx}-${gy}`}
-                className="light-overlay"
-                style={{
-                  position: 'absolute',
-                  left: x - TILE_W / 2,
-                  top: y,
-                  width: TILE_W,
-                  height: TILE_H,
-                  background: `radial-gradient(ellipse at 50% 50%, ${light.color} 0%, transparent 70%)`,
-                  opacity: light.opacity,
-                }}
-              />
-            );
-          })}
-
-          {/* Edit mode: hover grid overlay */}
-          {isEditing && floorTiles.map(({ gx, gy, x, y }) => {
-            const isOccupied = occupiedCells.has(`${gx},${gy}`);
-            return (
-              <div
-                key={`grid-${gx}-${gy}`}
-                className={`grid-cell ${isOccupied ? 'occupied' : 'available'}`}
-                style={{
-                  position: 'absolute',
-                  left: x - TILE_W / 2,
-                  top: y,
-                  width: TILE_W,
-                  height: TILE_H,
-                }}
-              />
-            );
-          })}
-
-          {/* Furniture items — depth sorted */}
-          {sortedFurniture.map((item) => (
-            <FurnitureItem
-              key={item.id}
-              id={item.id}
-              type={item.type}
-              gridX={item.x}
-              gridY={item.y}
-              flipped={item.flipped}
-              originX={originX}
-              originY={originY}
-              zoom={zoom}
-              roomGridW={ROOM_GRID_W}
-              roomGridH={ROOM_GRID_H}
-              roomMask={mask}
-            />
-          ))}
-
-          {/* Standing avatars for non-seated participants */}
-          {Object.values(participants).map((p) => {
-            if (p.seatFurnitureId) return null;
-            if (p.gridX == null || p.gridY == null) return null;
-            if (!isInMask(p.gridX, p.gridY, mask)) return null;
-            const { x, y } = isoToScreen(p.gridX, p.gridY, originX, originY);
-            const depth = getDepth(p.gridX, p.gridY);
-            return (
-              <StandingAvatar
-                key={`avatar-${p.id}`}
-                participant={p}
-                screenX={x}
-                screenY={y + TILE_H / 2}
-                depth={depth}
-              />
-            );
-          })}
-        </div>
+        <RoomScene3D
+          theme={theme}
+          zoom={zoom}
+          onFloorClick={handleFloorClick}
+        />
 
         {isEditing && furniture.length === 0 && (
-          <div className="room-empty">Drag furniture here from the palette</div>
+          <div className="room-empty" style={{ position: 'absolute', inset: 0, zIndex: 10 }}>
+            Drag furniture here from the palette
+          </div>
         )}
         {lastError && (
-          <div className="room-error-toast" role="alert">
+          <div className="room-error-toast" role="alert" style={{ zIndex: 20 }}>
             <span>{lastError}</span>
             <button onClick={clearError} aria-label="Dismiss">×</button>
           </div>
